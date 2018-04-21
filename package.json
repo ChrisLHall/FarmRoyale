@@ -1,0 +1,37 @@
+{
+  "name": "uncactus-game",
+  "version": "0.1.1",
+  "description": "Phaser example gone multiplayer!",
+  "main": "server/gameServer.js",
+  "repository" : {
+    "type" : "git",
+    "url" : "https://github.com/ChrisLHall/UnCactus.git"
+  },
+  "scripts": {
+    "start": "node .",
+    "dev": "nodemon .",
+    "lint": "standard --verbose | snazzy"
+  },
+  "author": "Chris L. Hall",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.15.2",
+    "socket.io": "^2.0.3",
+    "xmlhttprequest": "^1.8.0",
+    "kii-cloud-sdk": "^2.4.11",
+    "uuid": "^3.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^0.7.10",
+    "standard": "^5.3.1",
+    "grunt": "~0.4.2",
+    "connect": "~2.13.0",
+    "grunt-processhtml": "~0.3.0",
+    "grunt-contrib-concat": "~0.2.0",
+    "grunt-contrib-clean": "~0.4.0",
+    "grunt-contrib-uglify": "~0.2.7",
+    "grunt-contrib-connect": "~0.7.1",
+    "grunt-contrib-copy": "~0.5.0",
+    "grunt-contrib-rename": "~0.2.0"
+  }
+}

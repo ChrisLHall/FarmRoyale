@@ -1,0 +1,20 @@
+lib-cov
+*.seed
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+*.gz
+*DS_store
+
+pids
+logs
+results
+
+npm-debug.log
+node_modules
+build
+
+// do this to ignore changes to server creds:
+// git update-index --assume-unchanged server/KiiServerCreds.js
