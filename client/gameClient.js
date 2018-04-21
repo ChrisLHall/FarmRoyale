@@ -2,10 +2,12 @@ var game = new Phaser.Game(513, 912, Phaser.AUTO, 'gameContainer',
     { preload: preload, create: create, update: update, render: render })
 
 function preload () {
-  game.load.image('planet', 'assets/images/planet.png')
+  game.load.image('voidBG', 'assets/images/void.png')
+  game.load.image('grassTile', 'assets/images/grassbg.png')
+  game.load.image('sandTile', 'assets/images/sandbg.png')
+  game.load.image('swampTile', 'assets/images/swampbg.png')
+  game.load.image('farmTile', 'assets/images/farmbg.png')
 
-  game.load.image('spaceBG', 'assets/images/starfield.png')
-  game.load.image('spaceFG', 'assets/images/dustfield.png')
   game.load.image('shout', 'assets/images/shout.png')
   game.load.image('pressshout', 'assets/images/pressShout.png')
 
@@ -17,32 +19,26 @@ function preload () {
 
 var socket // Socket connection
 
-var spaceBG
-var spaceFG
+var voidBG
 
 var player
 // The base of our player
-var startX = 0
-var startY = 0
+var startX = 500
+var startY = 500
 
 var glob = {
   currentServerTick: 0,
   intermittents: [],
   otherPlayers: [],
   planets: [],
-  shouts: []
+  shouts: [],
 }
 window.glob = glob
 
-var selectedItemIndex = 0
-var itemCostStr = '...'
 var uiText
-var uiIcon
-var UI_BACK_POS = {x: (-448 + 0), y: (-252 + 0)}
-var UI_ICON_POS = {x: (-448 + 15), y: (-252 + 36)}
-var UI_TEXT_POS = {x: (-448 + 60), y: (-252 + 30)}
 var clickUsedByUI = false
 
+var tileGroup
 var planetGroup
 var playerGroup
 var uiGroup
@@ -57,16 +53,16 @@ function create () {
   setEventHandlers()
 
   game.physics.startSystem(Phaser.Physics.ARCADE)
-  game.world.setBounds(-2000, -2000, 4000, 4000)
+  game.world.setBounds(-2048, -2048, 5120, 5120)
 
   // Our tiled scrolling background
-  spaceBG = game.add.tileSprite(0, 0, 513, 912, 'spaceBG')
-  spaceBG.fixedToCamera = true
-  spaceFG = game.add.tileSprite(0, 0, 513, 912, 'spaceFG')
-  spaceFG.fixedToCamera = true
+  voidBG = game.add.tileSprite(0, 0, 513, 912, 'voidBG')
+  voidBG.fixedToCamera = true
 
   tileGroup = game.add.group();
-  itemGroup = game.add.group();
+  var tile = game.add.tileSprite(0, 0, 512, 512, "farmTile") // expand to 1000x1000
+  tile.scale.setTo(2, 2)
+  tileGroup.add(tile)
 
   planetGroup = game.add.group();
 
@@ -201,12 +197,8 @@ function update () {
   for (var i = 0; i < glob.shouts.length; i++) {
     glob.shouts[i].update()
   }
-  spaceBG.tilePosition.x = -game.camera.x / 3
-  spaceBG.tilePosition.y = -game.camera.y / 3
-  spaceFG.tilePosition.x = -game.camera.x
-  spaceFG.tilePosition.y = -game.camera.y
-  //uiGroup.x = game.camera.x - UI_BACK_POS.x
-  //uiGroup.y = game.camera.y - UI_BACK_POS.y
+  voidBG.tilePosition.x = -game.camera.x / 3
+  voidBG.tilePosition.y = -game.camera.y / 3
 
   updateUI()
 }

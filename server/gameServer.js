@@ -33,7 +33,7 @@ http.listen(port, function (err) {
   if (err) {
     throw err
   }
-
+  console.log("Started on port " + port)
   init()
 })
 
