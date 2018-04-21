@@ -18,7 +18,7 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-var port = process.env.PORT || 4545
+var port = process.env.PORT || 5050
 
 var players	// Array of connected players
 var planets // Array of planets
@@ -34,103 +34,35 @@ http.listen(port, function (err) {
     throw err
   }
 
-  initializeKii()
+  init()
 })
 
 rl.on('line', (input) => {
   console.log("Command input: " + input);
   if (input === "quit") {
     process.exit(0)
-  } else if (input === "kill all plants") {
-    DEBUGKillAllPlants()
   } else if (input === "replant") {
     DEBUGReplant()
   }
 });
 
-function initializeKii () {
-  if ("" === KiiServerCreds.username || "" === KiiServerCreds.password) {
-    console.log("Remember to populate server credentials in KiiServerCreds.js. Exiting...")
-    process.exit(1)
-    return //?
-  }
-  kii.Kii.initializeWithSite("l1rxzy4xclvo", "f662ebb1125548bc84626f5264eb11b4", kii.KiiSite.US);
-  kii.KiiUser.authenticate(KiiServerCreds.username, KiiServerCreds.password).then(function (user) {
-    console.log("Kii Admin User authenticated.")
-    fetchMetadata() // Start everything here
-  }).catch(function (error) {
-    var errorString = error.message;
-    console.log("FAILED Kii Admin authentication: " + errorString);
-    process.exit(1)
-    return //?
-  });
-}
-
-function fetchMetadata () {
-  metadata = null
-  metadataKiiObj = null
-
-  var queryObject = kii.KiiQuery.queryWithClause(null);
-
-  var bucket = kii.Kii.bucketWithName("Metadata");
-  bucket.executeQuery(queryObject).then(function (params) {
-    var queryPerformed = params[0];
-    var result = params[1];
-    var nextQuery = params[2]; // if there are more results
-    if (result.length > 0) {
-      if (result.length > 1) {
-        console.log("Multiple server metadata objects")
-      }
-      metadataKiiObj = result[0]
-      metadata = metadataKiiObj._customInfo
-      // Start the game here!
-      init()
-    } else {
-      console.log("Failed to find metadata, exiting")
-      process.exit(1)
-      return
-    }
-  }).catch(function (error) {
-    var errorString = "" + error.code + ":" + error.message;
-    console.log("Failed to find metadata, exiting. Error: " + errorString)
-    process.exit(1)
-    return
-  });
-}
-
-function writeMetadata () {
-  for (var key in metadata) {
-    if (metadata.hasOwnProperty(key)) {
-        metadataKiiObj.set(key, metadata[key])
-    }
-  }
-  metadataKiiObj.save().catch(function (error) {
-    var errorString = "" + error.code + ": " + error.message
-    console.log("ERROR: Unable to save metadata. Info: " + errorString);
-  });
-}
-
 function init () {
   players = []
-  planets = []
-
-  queryAllPlanets()
 
   // Start listening for events
   setEventHandlers()
-  setInterval(tick, 10000)
+  setInterval(tick, 500)
 }
 
 function tick() {
-  metadata["serverticks"] += 1;
-  io.emit('server tick', {serverTicks: metadata["serverticks"]})
-  writeMetadata()
+  //io.emit('server tick', {serverTicks: metadata["serverticks"]})
 
   growPlants()
 }
 
 // Process the map
 function growPlants () {
+  /*
   for (var planetIdx = 0; planetIdx < planets.length; planetIdx++){
     var planet = planets[planetIdx]
     var planetSlots = planet.info.slots
@@ -152,20 +84,9 @@ function growPlants () {
       setPlanetInfo(planet.kiiObj, planet, planet.planetID, planet.info)
     }
   }
+  */
 }
 
-// todo remove
-function DEBUGKillAllPlants () {
-  for (var planetIdx = 0; planetIdx < planets.length; planetIdx++){
-    var planet = planets[planetIdx]
-    var planetSlots = planet.info.slots
-    for (var slotIdx = 0; slotIdx < 6; slotIdx++) {
-      planetSlots[slotIdx].type = "empty"
-      planetSlots[slotIdx].birthTick = metadata["serverticks"]
-    }
-    setPlanetInfo(planet.kiiObj, planet, planet.planetID, planet.info)
-  }
-}
 function DEBUGReplant () {
   for (var planetIdx = 0; planetIdx < planets.length; planetIdx++){
     var planet = planets[planetIdx]
@@ -232,7 +153,6 @@ function onNewPlayer (data) {
   console.log("playerID of new player: " + newPlayerID)
   // Create a new player
   var newPlayer = new Player(data.x, data.y, newPlayerID, this)
-  getOrInitPlayerInfo(newPlayer, newPlayer.playerID)
 
   this.emit('confirm id', {playerID: newPlayer.playerID})
   // Broadcast new player to other connected socket clients

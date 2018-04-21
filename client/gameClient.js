@@ -52,7 +52,7 @@ function create () {
   // TODO remove for release????
   game.stage.disableVisibilityChange = true;
   socket = io.connect()
-  Kii.initializeWithSite("l1rxzy4xclvo", "f662ebb1125548bc84626f5264eb11b4", KiiSite.US)
+  //Kii.initializeWithSite("l1rxzy4xclvo", "f662ebb1125548bc84626f5264eb11b4", KiiSite.US)
   // Start listening for events
   setEventHandlers()
 
@@ -109,11 +109,6 @@ function setEventHandlers () {
   // Player removed message received
   socket.on('remove player', onRemovePlayer)
 
-  socket.on('server tick', onServerTick)
-
-  socket.on('update player info', onUpdatePlayerInfo)
-  socket.on('update planet info', onUpdatePlanetInfo)
-
   socket.on('shout', onShout)
   socket.on('chat message', onReceiveChat)
   // server side only
@@ -138,36 +133,13 @@ function onConfirmID (data) {
   console.log("confirmed my ID: " + data.playerID)
   window.localStorage.setItem("preferredID", data.playerID)
 
-  tryKiiLogin(data.playerID, function () {
-    player = new LocalPlayer(data.playerID, playerGroup, startX, startY, Player.generateNewInfo(data.playerID))
+  player = new LocalPlayer(data.playerID, playerGroup, startX, startY, Player.generateNewInfo(data.playerID))
 
-    game.camera.follow(player.gameObj, Phaser.Camera.FOLLOW_TOPDOWN_TIGHT, 0.3, 0.3)
-    game.camera.focusOnXY(startX, startY)
+  game.camera.follow(player.gameObj, Phaser.Camera.FOLLOW_TOPDOWN_TIGHT, 0.3, 0.3)
+  game.camera.focusOnXY(startX, startY)
 
-    queryPlayerInfo(player, player.playerID)
-    queryAllPlanets()
-  })
 }
 
-function tryKiiLogin (playerID, successCallback) {
-  var username = playerID;
-  var password = "password9001";
-  KiiUser.authenticate(username, password).then(function (user) {
-    console.log("Kii User authenticated: " + JSON.stringify(user));
-    successCallback()
-  }).catch(function (error) {
-    var errorString = error.message;
-    console.log("Unable to authenticate user: " + errorString + "...attempting signup");
-    var user = KiiUser.userWithUsername(username, password);
-    user.register().then(function (user) {
-      console.log("User registered: " + JSON.stringify(user));
-      successCallback()
-    }).catch(function(error) {
-      var errorString = "" + error.code + error.message;
-      console.log("Unable to register user: " + errorString + "... reload I guess?");
-    });
-  });
-}
 
 // New player
 function onNewPlayer (data) {
@@ -176,7 +148,6 @@ function onNewPlayer (data) {
   // Add new player to the remote players array
   var remote = new RemotePlayer(data.playerID, playerGroup, data.x, data.y)
   glob.otherPlayers.push(remote)
-  queryPlayerInfo(remote, data.playerID)
 }
 
 // Move player
@@ -210,125 +181,6 @@ function onRemovePlayer (data) {
   glob.otherPlayers.splice(glob.otherPlayers.indexOf(removePlayer), 1)
 }
 
-function onServerTick (data) {
-  glob.currentServerTick = data.serverTicks
-}
-
-function onUpdatePlayerInfo (data) {
-  if (null != player && data.playerID === player.playerID) {
-    queryPlayerInfo(player, data.playerID)
-  } else {
-    var otherPlayer = playerByID(data.playerID)
-    if (null != otherPlayer) {
-      queryPlayerInfo(otherPlayer, data.playerID)
-    }
-  }
-}
-
-function onUpdatePlanetInfo (data) {
-  var planet = planetByID(data.planetID)
-  if (null == planet) {
-    console.log("Creating new planet to query: " + data.planetID)
-    var fakeInfo = Planet.generateNewInfo(data.planetID, -4000, -4000, "")
-    var planet = new LocalPlanet(data.planetID, planetGroup, fakeInfo) // create offscreen
-    glob.planets.push(planet)
-  }
-  queryPlanetInfo(planet, data.planetID)
-}
-
-function queryPlayerInfo (playerObj, playerID) {
-  if (null == playerObj) {
-    return
-  }
-  var queryObject = KiiQuery.queryWithClause(KiiClause.equals("playerid", playerID));
-  queryObject.sortByDesc("_created");
-
-  var bucket = Kii.bucketWithName("PlayerInfo");
-  bucket.executeQuery(queryObject).then(function (params) {
-    var queryPerformed = params[0];
-    var result = params[1];
-    var nextQuery = params[2]; // if there are more results
-    if (result.length > 0) {
-      if (result.length > 1) {
-        console.log("Multiple PlayerInfos for " + playerID)
-      }
-      console.log(playerID + ": PlayerInfo query successful")
-      playerObj.setInfo(result[0]["_customInfo"])
-    } else {
-      console.log(playerID + ": PlayerInfo query failed, returned no objects")
-    }
-  }).catch(function (error) {
-    var errorString = "" + error.code + ":" + error.message;
-    console.log(playerID + ": PlayerInfo query failed, unable to execute query: " + errorString);
-  });
-}
-
-function queryPlanetInfo(planetObj, planetID) {
-  if (null == planetObj) {
-    return
-  }
-  var queryObject = KiiQuery.queryWithClause(KiiClause.equals("planetid", planetID));
-  queryObject.sortByDesc("_created");
-
-  var bucket = Kii.bucketWithName("Planets");
-  bucket.executeQuery(queryObject).then(function (params) {
-    var queryPerformed = params[0];
-    var result = params[1];
-    var nextQuery = params[2]; // if there are more results
-    if (result.length > 0) {
-      if (result.length > 1) {
-        console.log("Multiple Planets for " + planetID)
-      }
-      console.log(planetID + ": Planet query successful")
-      planetObj.setInfo(result[0]._customInfo)
-    } else {
-      console.log(planetID + ": Planet query failed, returned no objects")
-    }
-  }).catch(function (error) {
-    var errorString = "" + error.code + ":" + error.message;
-    console.log(planetID + ": Planet query failed, unable to execute query: " + errorString);
-  });
-}
-
-function queryAllPlanets() {
-  for (var i = 0; i < glob.planets.length; i++) {
-    glob.planets[i].gameObj.destroy()
-  }
-  glob.planets = []
-  var queryObject = KiiQuery.queryWithClause(null);
-  queryObject.sortByDesc("_created");
-
-  var bucket = Kii.bucketWithName("Planets");
-  bucket.executeQuery(queryObject).then(function (params) {
-    var queryPerformed = params[0];
-    var result = params[1];
-    var nextQuery = params[2]; // if there are more results
-    console.log("Successfully queried number of planets: " + result.length)
-    for (var i = 0; i < result.length; i++) {
-      var planetInfo = result[i]._customInfo
-      var planet = new LocalPlanet(planetInfo.planetid, planetGroup, planetInfo)
-      glob.planets.push(planet)
-    }
-  }).catch(function (error) {
-    var errorString = "" + error.code + ":" + error.message;
-    console.log("All Planets query failed, unable to execute query: " + errorString);
-  });
-}
-
-
-function getTileOrItem (tilesOrItems, x, y) {
-  return tilesOrItems[x.toString() + ',' + y.toString]
-}
-
-function setTileOrItem (tilesOrItems, x, y, id) {
-  tilesOrItems[x.toString() + ',' + y.toString] = id
-}
-
-var MAXCOUNT = 20
-var countdown = MAXCOUNT
-var MAXKEYCOUNT = 8
-var keyCountdown = MAXKEYCOUNT
-var ZERO_POINT = new Phaser.Point(0, 0)
 function update () {
   if (null != player) {
     player.update()
@@ -378,14 +230,6 @@ function playerByID (playerID) {
   return null
 }
 
-function planetByID (planetID) {
-  for (var i = 0; i < glob.planets.length; i++) {
-    if (glob.planets[i].planetID === planetID) {
-      return glob.planets[i]
-    }
-  }
-  return null
-}
 
 // TEMP CHAT SYSTEM
 function onReceiveChat(msg) {

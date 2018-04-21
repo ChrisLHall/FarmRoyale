@@ -16,9 +16,6 @@ var LocalPlayer = function (playerID, group, startX, startY, playerInfo) {
   this.targetPos = new Phaser.Point(startX, startY)
   this.lerpSpeed = 5
 
-  this.targetPlanetObj = null
-  this.sittingOnPlanetObj = null
-
   this.setInfo(playerInfo)
 }
 
@@ -31,14 +28,6 @@ LocalPlayer.prototype.setInfo = function (info) {
   }
 }
 
-LocalPlayer.prototype.targetPlanet = function (planet) {
-  if (null != planet) {
-    this.targetPos = planet.gameObj.position
-    this.targetPlanetObj = planet
-  } else {
-    this.targetPlanetObj = null
-  }
-}
 
 LocalPlayer.prototype.exists = function () {
   return this.gameObj.exists
@@ -53,8 +42,6 @@ LocalPlayer.prototype.update = function () {
       .getMagnitude() > 70) {
     //game.physics.arcade.moveToPointer(this.gameObj, 300);
     this.targetPos = clickPoint
-    this.targetPlanet(null)
-    this.sittingOnPlanetObj = null
   }
 
   var delta = Phaser.Point.subtract(this.targetPos, this.gameObj.position)
@@ -64,17 +51,10 @@ LocalPlayer.prototype.update = function () {
     this.gameObj.angle = Math.atan2(delta.y, delta.x) * Phaser.Math.RAD_TO_DEG
   } else {
     // arrived
-    if (null != this.targetPlanetObj) {
-      this.sittingOnPlanetObj = this.targetPlanetObj
-      this.targetPlanet(null)
-    }
   }
   this.gameObj.x += delta.x
   this.gameObj.y += delta.y
 
-  if (null != this.sittingOnPlanetObj) {
-    this.gameObj.angle += this.sittingOnPlanetObj.info.rotSpeed
-  }
 }
 
 window.LocalPlayer = LocalPlayer

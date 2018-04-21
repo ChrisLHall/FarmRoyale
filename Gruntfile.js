@@ -99,7 +99,7 @@ module.exports = function(grunt) {
         options: {
           process: true,
           data: {
-            title: 'HXC MICRO',
+            title: 'Farm Royale',
             message: 'This is production distribution'
           }
         },

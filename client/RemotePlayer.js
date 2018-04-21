@@ -16,20 +16,6 @@ var RemotePlayer = function (playerID, group, startX, startY, playerInfo) {
 
   this.targetPos = new Phaser.Point(x, y)
   this.lerpSpeed = 6
-
-  this.setInfo(playerInfo)
-}
-
-RemotePlayer.prototype.setColorIndex = function (ind) {
-  this.gameObj.tint = LocalPlayer.colors[ind];
-}
-
-RemotePlayer.prototype.setInfo = function (info) {
-  beeLib.CommonUtil.validate(info, beeLib.Player.generateNewInfo(this.playerID))
-  this.playerInfo = info
-  if (null != info) {
-    this.setColorIndex(info.color)
-  }
 }
 
 RemotePlayer.prototype.exists = function () {
