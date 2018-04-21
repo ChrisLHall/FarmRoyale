@@ -23,6 +23,7 @@ var port = process.env.PORT || 5050
 var players	// Array of connected players
 var planets // Array of planets
 var currentPlanetIdx = 0 // checking for modified planets
+var map
 
 /* ************************************************
 ** GAME INITIALISATION
@@ -48,7 +49,7 @@ rl.on('line', (input) => {
 
 function init () {
   players = []
-
+  generateNewMap()
   // Start listening for events
   setEventHandlers()
   setInterval(tick, 500)
@@ -96,6 +97,26 @@ function DEBUGReplant () {
       planetSlots[slotIdx].birthTick = metadata["serverticks"]
     }
     setPlanetInfo(planet.kiiObj, planet, planet.planetID, planet.info)
+  }
+}
+
+function generateNewMap() {
+  // map is 5x7
+  // 2 is grass, 3 is sand, 4 is swamp
+  // 1 is farm (always in the middle)
+  // 0 is void
+  map = []
+  for (var row = 0; row < 7; row++) {
+    var rowList = []
+    for (var col = 0; col < 5; col++) {
+      var tile = Math.floor(2 + Math.random() * 3)
+      if (row === 3 && col === 2) {
+        tile = 1
+      }
+      rowList.push(tile)
+    }
+    console.log(rowList.toString())
+    map.push(rowList)
   }
 }
 
@@ -155,6 +176,7 @@ function onNewPlayer (data) {
   var newPlayer = new Player(data.x, data.y, newPlayerID, this)
 
   this.emit('confirm id', {playerID: newPlayer.playerID})
+  this.emit('update map', {map: map})
   // Broadcast new player to other connected socket clients
   this.broadcast.emit('new player', {playerID: newPlayer.playerID, x: newPlayer.getX(), y: newPlayer.getY()})
 
@@ -196,168 +218,13 @@ function onMovePlayer (data) {
 }
 
 function onShout (data) {
-  io.emit("shout", data) // data just has player id
-
+  io.emit("shout", data)
 }
 
 function onReceiveChat (msg) {
   var text = "" + this.id + ": " + msg
   console.log(text)
   io.emit("chat message", text)
-}
-
-function inStartTiles (x, y) {
-  loc = x.toString() + ',' + y.toString()
-  if (startTiles[loc]) {
-    return true
-  } else {
-    return false
-  }
-}
-
-function createHomePlanet(playerID) {
-  var planet = new Planet(uuidv4())
-  var planetInfo = Planet.generateNewInfo(planet.planetID, -1800 + Math.random() * 3600, -1800 + Math.random() * 3600, playerID)
-  planet.info = planetInfo
-  return planet
-}
-
-function createEmptyPlanet() {
-  var planet = new Planet(uuidv4())
-  var planetInfo = Planet.generateNewInfo(planet.planetID, -1800 + Math.random() * 3600, -1800 + Math.random() * 3600, "")
-  planet.info = planetInfo
-  return planet
-}
-
-function getOrInitPlayerInfo(player, playerID) {
-  var queryObject = kii.KiiQuery.queryWithClause(kii.KiiClause.equals("playerid", playerID));
-  queryObject.sortByDesc("_created");
-
-  var bucket = kii.Kii.bucketWithName("PlayerInfo");
-  bucket.executeQuery(queryObject).then(function (params) {
-    var queryPerformed = params[0];
-    var result = params[1];
-    var nextQuery = params[2]; // if there are more results
-    if (result.length > 0) {
-      if (result.length > 1) {
-        console.log("Multiple PlayerInfos for " + playerID)
-      }
-      console.log(playerID + ": PlayerInfo query successful")
-      player.kiiObj = result[0]
-      var info = result[0]._customInfo
-      CommonUtil.validate(info, Player.generateNewInfo(playerID))
-      player.info = info
-    } else {
-      console.log(playerID + ": PlayerInfo query failed, returned no objects")
-      setPlayerInfo(null, player, playerID, Player.generateNewInfo(playerID))
-      // create home planet
-      var homePlanet = createHomePlanet(playerID)
-      planets.push(homePlanet)
-      setPlanetInfo(null, homePlanet, homePlanet.planetID, homePlanet.info)
-    }
-  }).catch(function (error) {
-    var errorString = "" + error.code + ":" + error.message;
-    console.log(playerID + ": PlayerInfo query failed, unable to execute query: " + errorString);
-  });
-}
-
-function setPlayerInfo(existingKiiObj, player, playerID, playerInfo) {
-  var obj = existingKiiObj
-  if (null == obj) {
-    var bucket = kii.Kii.bucketWithName("PlayerInfo");
-    obj = bucket.createObject();
-  }
-  for (var key in playerInfo) {
-    if (playerInfo.hasOwnProperty(key)) {
-      obj.set(key, playerInfo[key]);
-    }
-  }
-
-  obj.save().then(function (obj) {
-    player.kiiObj = obj
-    player.info = obj._customInfo
-    console.log(playerID + ": player info save succeeded");
-    player.socket.emit('update player info', {playerID: playerID})
-  }).catch(function (error) {
-    var errorString = "" + error.code + ": " + error.message
-    console.log(playerID + ": Unable to create player info: " + errorString);
-  });
-}
-
-function queryAllPlanets() {
-  planets = []
-  var queryObject = kii.KiiQuery.queryWithClause(null);
-  queryObject.sortByDesc("_created");
-
-  var bucket = kii.Kii.bucketWithName("Planets");
-  bucket.executeQuery(queryObject).then(function (params) {
-    var queryPerformed = params[0];
-    var result = params[1];
-    var nextQuery = params[2]; // if there are more results
-    console.log("Successfully queried number of planets: " + result.length)
-    for (var i = 0; i < result.length; i++) {
-      var planetResult = result[i]
-      var planetInfo = planetResult._customInfo
-      var planet = new Planet(planetInfo.planetid)
-      planet.kiiObj = planetResult
-      CommonUtil.validate(planetInfo, Planet.generateNewInfo(planetInfo.planetid, 0, 0, ""))
-      planet.info = planetInfo
-      planets.push(planet)
-    }
-  }).catch(function (error) {
-    var errorString = "" + error.code + ":" + error.message;
-    console.log("All Planets query failed, unable to execute query: " + errorString);
-  });
-}
-
-function getPlanetInfo(planet, planetID) {
-  var queryObject = kii.KiiQuery.queryWithClause(kii.KiiClause.equals("planetid", planetID));
-  queryObject.sortByDesc("_created");
-
-  var bucket = kii.Kii.bucketWithName("Planets");
-  bucket.executeQuery(queryObject).then(function (params) {
-    var queryPerformed = params[0];
-    var result = params[1];
-    var nextQuery = params[2]; // if there are more results
-    if (result.length > 0) {
-      if (result.length > 1) {
-        console.log("Multiple Planets for " + planetID)
-      }
-      console.log(planetID + ": Planet query successful")
-      planet.kiiObj = result[0]
-      var planetInfo = result[0]._customInfo
-      CommonUtil.validate(planetInfo, Planet.generateNewInfo(planetID, 0, 0, ""))
-      planet.info = planetInfo
-    } else {
-      console.log(planetID + ": Planet query failed, returned no objects")
-    }
-  }).catch(function (error) {
-    var errorString = "" + error.code + ":" + error.message;
-    console.log(planetID + ": Planet query failed, unable to execute query: " + errorString);
-  });
-}
-
-function setPlanetInfo(existingKiiObj, planet, planetID, planetInfo) {
-  var obj = existingKiiObj
-  if (null == obj) {
-    var bucket = kii.Kii.bucketWithName("Planets");
-    obj = bucket.createObject();
-  }
-  for (var key in planetInfo) {
-    if (planetInfo.hasOwnProperty(key)) {
-      obj.set(key, planetInfo[key]);
-    }
-  }
-
-  obj.save().then(function (obj) {
-    planet.kiiObj = obj
-    planet.info = obj._customInfo
-    console.log(planetID + ": planet info save succeeded");
-    io.emit('update planet info', {planetID: planetID})
-  }).catch(function (error) {
-    var errorString = "" + error.code + ": " + error.message
-    console.log(playerID + ": Unable to create planet info: " + errorString);
-  });
 }
 
 /* ************************************************

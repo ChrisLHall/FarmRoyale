@@ -15,21 +15,7 @@
   </head>
   <body>
   <div style="height:100%;">
-    <div id="gameContainer" style="display:inline-block; height:85%; background-color:#444444"></div>
-    <div>
-      TEMPORARY AS HECK CHAT WHILE I DEV
-      <form id="chatForm">
-        <input id="m" autocomplete="off" /><button>Send</button>
-      </form>
-      <ul id="messages"></ul>
-    </div>
-    <script type="text/javascript">
-      $("form").submit(function(e) {
-        socket.emit('chat message', $('#m').val())
-        $('#m').val("")
-        e.preventDefault()
-      })
-    </script>
+    <div id="gameContainer" style="display:inline-block; height:100%; background-color:#444444"></div>
   </div>
   </body>
 </html>
