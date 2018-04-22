@@ -53,13 +53,11 @@ function init () {
   spawnCollectibles()
   // Start listening for events
   setEventHandlers()
-  setInterval(tick, 500)
+  setInterval(tick, 1000)
 }
 
 function tick() {
-  //io.emit('server tick', {serverTicks: metadata["serverticks"]})
-
-  growPlants()
+  // move critters, countdown
 }
 
 function DEBUGReplant () {
@@ -118,6 +116,15 @@ function spawnCollectibles() {
       }
     }
   }
+  io.emit('spawn collectibles', getCollectiblesData())
+}
+
+function getCollectiblesData() {
+  var data = { collectibles: [] }
+  for (var i = 0; i < collectibles.length; i++) {
+    data.collectibles.push(collectibles[i].getData())
+  }
+  return data
 }
 
 function despawnCollectibles(doSend, includeFarmTile, specificTile) {
@@ -210,6 +217,8 @@ function onNewPlayer (data) {
 
   // Add new player to the players array after duplicates have been removed
   players.push(newPlayer)
+
+  //this.emit('spawn collectibles', getCollectiblesData())
 }
 
 // Player has moved

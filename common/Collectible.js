@@ -10,9 +10,9 @@
   }
 
   // these are defined in two places, rip
-  var TILES_START_X = -2048
-  var TILES_START_Y = -3072
-  var TILE_SIZE = 1024
+  Collectible.TILES_START_X = -2048
+  Collectible.TILES_START_Y = -3072
+  Collectible.TILE_SIZE = 1024
 
   Collectible.prototype.getCurrentTile = function () {
     var tileX = 0
@@ -36,6 +36,7 @@
       type: this.type,
       gotoX: this.gotoX,
       gotoY: this.gotoY,
+      playerCarryingID: this.playerCarryingID,
     }
   }
 

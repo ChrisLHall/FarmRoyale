@@ -32,6 +32,7 @@ var glob = {
   intermittents: [],
   otherPlayers: [],
   tiles: [],
+  collectibles: [],
   ui: [],
   shouts: [],
 }
@@ -41,6 +42,7 @@ var clickUsedByUI = false
 
 var tileGroup
 var playerGroup
+var collectibleGroup
 var uiGroup
 
 function create () {
@@ -75,6 +77,8 @@ function create () {
     }
     glob.tiles.push(rowOfTiles)
   }
+
+  collectibleGroup = game.add.group()
 
   playerGroup = game.add.group();
   playerGroup.enableBody = true;
@@ -117,11 +121,10 @@ function setEventHandlers () {
   socket.on('remove player', onRemovePlayer)
 
   socket.on('update map', onUpdateMap)
+  socket.on('spawn collectibles', onSpawnCollectibles)
 
   socket.on('shout', onShout)
   socket.on('chat message', onReceiveChat)
-  // server side only
-  //socket.on('change tile', onChangeTile)
 }
 
 // Socket connected
@@ -208,6 +211,13 @@ function onUpdateMap (data) {
       }
       tileObj.loadTexture(texture)
     }
+  }
+}
+
+function onSpawnCollectibles (data) {
+  for (var i = 0; i < data.collectibles.length; i++) {
+    var collectibleData = data.collectibles[i]
+    
   }
 }
 
