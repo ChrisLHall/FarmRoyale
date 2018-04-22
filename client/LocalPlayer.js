@@ -31,7 +31,6 @@ LocalPlayer.prototype.setInfo = function (info) {
   }
 }
 
-
 LocalPlayer.prototype.exists = function () {
   return this.gameObj.exists
 }
@@ -46,11 +45,11 @@ LocalPlayer.prototype.update = function () {
       .getMagnitude() > 70) {
     //game.physics.arcade.moveToPointer(this.gameObj, 300);
     this.targetPos = clickPoint
-    this.finishedMoving = false
   }
 
   var delta = Phaser.Point.subtract(this.targetPos, this.gameObj.position)
   if (delta.getMagnitude() > this.lerpSpeed) {
+    this.finishedMoving = false
     delta.normalize()
     delta.multiply(this.lerpSpeed, this.lerpSpeed)
     this.gameObj.angle = Math.atan2(delta.y, delta.x) * Phaser.Math.RAD_TO_DEG
@@ -69,6 +68,19 @@ LocalPlayer.prototype.update = function () {
   }
   this.gameObj.x += delta.x
   this.gameObj.y += delta.y
+
+  // update the drop button state based on my position
+  var buttonAnim = "invisible"
+  if ("" !== this.carryingItemID) {
+    buttonAnim = "button"
+    var tile = Collectible.getTileAt(this.gameObj.x, this.gameObj.y)
+    if (tile.row === 3 && tile.col === 2) {
+      buttonAnim = "highlighted"
+    }
+  }
+  if (dropButton.gameObj.animations.currentAnim.name !== buttonAnim) {
+    dropButton.gameObj.animations.play(buttonAnim)
+  }
 }
 
 LocalPlayer.prototype.checkForPickup = function () {
@@ -79,6 +91,10 @@ LocalPlayer.prototype.checkForPickup = function () {
       break
     }
   }
+}
+
+LocalPlayer.prototype.tryDrop = function () {
+  socket.emit("try drop", {x: this.gameObj.x, y: this.gameObj.y})
 }
 
 window.LocalPlayer = LocalPlayer

@@ -75,6 +75,10 @@ function tick() {
         console.log("The player carrying " + c.toString() + " is gone.")
         c.playerCarryingID = ""
         updated = true
+      } else if (p.carryingItemID !== c.itemID) {
+        console.log("Player doesnt know they are carrying " + c)
+        p.carryingItemID = c.itemID
+        updated = true
       }
     }
     if (updated) {
@@ -106,8 +110,8 @@ function generateNewMap() {
   }
 }
 
-var CRITTERS_PER_TILE = 0 // 3
-var PLANTS_PER_TILE = 1 // 8
+var CRITTERS_PER_TILE = 3
+var PLANTS_PER_TILE = 8
 function spawnCollectibles() {
   for (var row = 0; row < 7; row++) {
     for (var col = 0; col < 5; col++) {
@@ -177,6 +181,7 @@ function onSocketConnection (client) {
   client.on('move player', onMovePlayer)
 
   client.on("try pickup", onTryPickup)
+  client.on("try drop", onTryDrop)
   client.on('shout', onShout)
   // TEMP chat
   client.on('chat message', onReceiveChat)
@@ -255,7 +260,7 @@ function onMovePlayer (data) {
   this.broadcast.emit('move player', {playerID: movePlayer.playerID, x: movePlayer.x, y: movePlayer.y, angle: movePlayer.angle})
 }
 
-function onTryPickup(data) {
+function onTryPickup (data) {
   var movePlayer = playerBySocket(this)
 
   // Player not found
@@ -266,10 +271,38 @@ function onTryPickup(data) {
 
   var c = collectibleByID(data.itemID)
   if (c && c.playerCarryingID === "" && movePlayer.carryingItemID === "") {
-    c.playerCarryingID = movePlayer.playerID
-    movePlayer.carryingItemID = c.itemID
-    io.emit("update collectible", c.getData())
-    console.log("Player " + movePlayer.playerID + " picking up " + c.toString())
+    var tile = Collectible.getTileAt(c.patrolX, c.patrolY)
+    if (map[tile.row][tile.col] >= 2) {
+      c.playerCarryingID = movePlayer.playerID
+      movePlayer.carryingItemID = c.itemID
+      io.emit("update collectible", c.getData())
+      console.log("Player " + movePlayer.playerID + " picking up " + c.toString())
+    }
+  }
+}
+
+function onTryDrop (data) {
+  var movePlayer = playerBySocket(this)
+
+  // Player not found
+  if (null == movePlayer) {
+    console.log('Player not found for connection: ' + this.id)
+    return
+  }
+
+  if ("" !== movePlayer.carryingItemID) {
+    var c = collectibleByID(movePlayer.carryingItemID)
+    if (c) {
+      // todo check the tile
+      c.playerCarryingID = ""
+      movePlayer.carryingItemID = ""
+      c.patrolX = data.x
+      c.patrolY = data.y
+      c.gotoX = data.x
+      c.gotoY = data.y
+      io.emit("update collectible", c.getData())
+      console.log("Player " + movePlayer.playerID + " dropped " + c.toString())
+    }
   }
 }
 

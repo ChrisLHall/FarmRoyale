@@ -17,17 +17,17 @@
   Collectible.getTileAt = function (x, y) {
     var tileX = 0
     for (var i = 0; i < 5; i++) {
-      if (x >= TILES_START_X + i * TILE_SIZE) {
+      if (x >= Collectible.TILES_START_X + i * Collectible.TILE_SIZE) {
         tileX = i
       }
     }
     var tileY = 0
     for (var i = 0; i < 7; i++) {
-      if (y >= TILES_START_Y + i * TILE_SIZE) {
+      if (y >= Collectible.TILES_START_Y + i * Collectible.TILE_SIZE) {
         tileY = i
       }
     }
-    return { x: tileX, y: tileY }
+    return { col: tileX, row: tileY }
   }
 
   Collectible.prototype.getData = function () {

@@ -13,6 +13,8 @@ var LocalCollectible = function (itemID, group, startX, startY, type) {
   this.gameObj.animations.play(this.isCritter ? "move" : "stand")
   this.gameObj.anchor.setTo(0.5, 0.5)
 
+  this.gameObj.inputEnabled = true;
+  this.gameObj.events.onInputDown.add(this.pressed, this);
 }
 
 LocalCollectible.prototype.setData = function (data) {
@@ -38,6 +40,11 @@ LocalCollectible.prototype.update = function () {
     if (p) {
       this.gameObj.x = p.gameObj.x
       this.gameObj.y = p.gameObj.y
+      if (this.isCritter && this.gameObj.animations.currentAnim.name !== "move") {
+        this.gameObj.animations.play("move")
+      } else if (!this.isCritter && this.gameObj.animations.currentAnim.name !== "move") {
+        this.gameObj.animations.play("harvested")
+      }
     }
   } else if (this.isCritter) {
 
@@ -60,6 +67,13 @@ LocalCollectible.prototype.update = function () {
   } else {
     this.gameObj.x = this.targetPos.x
     this.gameObj.y = this.targetPos.y
+  }
+}
+
+LocalCollectible.prototype.pressed = function() {
+  if (!clickUsedByUI) {
+    clickUsedByUI = true // ALWAYS DO THIS FIRST
+    player.targetPos = new Phaser.Point(this.gameObj.x, this.gameObj.y)
   }
 }
 

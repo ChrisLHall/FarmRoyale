@@ -13,6 +13,7 @@ function preload () {
 
   game.load.spritesheet('emojis', 'assets/images/emojis.png', 64, 64)
   game.load.spritesheet('playerbot', 'assets/images/roboto.png', 64, 64)
+  game.load.spritesheet('ui_dropbutton', 'assets/images/ui_dropbutton.png', 96, 96)
 
   game.load.spritesheet('plant_radish', 'assets/images/plant_radish.png', 64, 64)
 
@@ -24,6 +25,7 @@ var socket // Socket connection
 var voidBG
 
 var player
+var dropButton
 
 var PLAYER_START_X = Collectible.TILE_SIZE / 2
 var PLAYER_START_Y = Collectible.TILE_SIZE / 2
@@ -92,6 +94,10 @@ function create () {
     var emojiButton = new UIButton(uiGroup, "emojis", i * 2 + 1, x, 40, clickShoutFunc(i))
     glob.ui.push(emojiButton)
   }
+  dropButton = new UIButton(uiGroup, "ui_dropbutton", 1, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 50, clickDrop)
+  glob.ui.push(dropButton)
+  dropButton.gameObj.animations.add("invisible", [0], 1, true)
+  dropButton.gameObj.animations.add("highlighted", [2], 1, true)
 }
 
 function clickShoutFunc (emojiIdx) {
@@ -104,6 +110,10 @@ function clickShoutFunc (emojiIdx) {
 
 function onShout (data) {
   var shout = new Shout(data.playerID, data.emojiIdx)
+}
+
+function clickDrop () {
+  player.tryDrop()
 }
 
 function setEventHandlers () {
@@ -143,6 +153,8 @@ function onSocketConnected () {
 // Socket disconnected
 function onSocketDisconnect () {
   console.log('Disconnected from socket server')
+  player.gameObj.kill()
+  socket.close()
 }
 
 function onConfirmID (data) {
@@ -230,9 +242,6 @@ function onSpawnCollectibles (data) {
 
 function onUpdateCollectible (data) {
   var coll = collectibleByID(data.itemID)
-  if (data.playerCarryingID) {
-    console.log("oo somethin")
-  }
   if (coll) {
     coll.setData(data)
   }
