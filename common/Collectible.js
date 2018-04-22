@@ -40,6 +40,9 @@
     }
   }
 
+  Collectible.prototype.toString = function () {
+    return this.type + ":" + this.itemID
+  }
 
   // 2 is grass, 3 is sand, 4 is swamp
   Collectible.COLLECTIBLES = {

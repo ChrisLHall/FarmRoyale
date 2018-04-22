@@ -1,5 +1,6 @@
 var LocalCollectible = function (itemID, group, startX, startY, type) {
   this.itemID = itemID
+  this.type = type
   this.isCritter = Collectible.COLLECTIBLES[type].isCritter
   this.targetPos = new Phaser.Point(startX, startY)
   this.lerpSpeed = Collectible.COLLECTIBLES[type].moveSpeed
@@ -16,11 +17,23 @@ var LocalCollectible = function (itemID, group, startX, startY, type) {
 
 LocalCollectible.prototype.setData = function (data) {
   this.targetPos = new Phaser.Point(data.gotoX, data.gotoY)
+  if (this.playerCarryingID !== "") {
+    var prevCarrying = playerByID(this.playerCarryingID)
+    if (prevCarrying) {
+      prevCarrying.carryingItemID = ""
+    }
+  }
   this.playerCarryingID = data.playerCarryingID
+  if (this.playerCarryingID !== "") {
+    var nowCarrying = playerByID(this.playerCarryingID)
+    if (nowCarrying) {
+      nowCarrying.carryingItemID = this.itemID
+    }
+  }
 }
 
 LocalCollectible.prototype.update = function () {
-  if ("" != this.playerCarryingID) {
+  if ("" !== this.playerCarryingID) {
     var p = playerByID(this.playerCarryingID)
     if (p) {
       this.gameObj.x = p.gameObj.x

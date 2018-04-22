@@ -79,11 +79,11 @@ function create () {
     glob.tiles.push(rowOfTiles)
   }
 
-  collPlantGroup = game.add.group()
-  collCritterGroup = game.add.group()
-
   playerGroup = game.add.group();
   playerGroup.enableBody = true;
+
+  collPlantGroup = game.add.group()
+  collCritterGroup = game.add.group()
 
   uiGroup = game.add.group();
   uiGroup.fixedToCamera = true
@@ -223,12 +223,16 @@ function onSpawnCollectibles (data) {
     var cData = data.collectibles[i]
     var group = Collectible.COLLECTIBLES[cData.type].isCritter ? collCritterGroup : collPlantGroup
     var c = new LocalCollectible(cData.itemID, group, cData.gotoX, cData.gotoY, cData.type)
+    c.setData(cData)
     glob.collectibles.push(c)
   }
 }
 
 function onUpdateCollectible (data) {
   var coll = collectibleByID(data.itemID)
+  if (data.playerCarryingID) {
+    console.log("oo somethin")
+  }
   if (coll) {
     coll.setData(data)
   }

@@ -62,24 +62,28 @@ function tick() {
 
   for (var i = 0; i < collectibles.length; i++) {
     var c = collectibles[i]
+    var updated = false
     if (Collectible.COLLECTIBLES[c.type].isCritter && Math.random() < .5) {
       c.gotoX = c.patrolX + (-.5 + Math.random()) * PATROL_DIST
       c.gotoY = c.patrolY + (-.5 + Math.random()) * PATROL_DIST
+      updated = true
+    }
+    // check for pickups whose player has left
+    if (c.playerCarryingID !== "") {
+      var p = playerByID(c.playerCarryingID)
+      if (!p) {
+        console.log("The player carrying " + c.toString() + " is gone.")
+        c.playerCarryingID = ""
+        updated = true
+      }
+    }
+    if (updated) {
       io.emit("update collectible", c.getData())
     }
   }
 }
 
 function DEBUGReplant () {
-  for (var planetIdx = 0; planetIdx < planets.length; planetIdx++){
-    var planet = planets[planetIdx]
-    var planetSlots = planet.info.slots
-    for (var slotIdx = 0; slotIdx < 6; slotIdx++) {
-      planetSlots[slotIdx].type = "cactus1"
-      planetSlots[slotIdx].birthTick = metadata["serverticks"]
-    }
-    setPlanetInfo(planet.kiiObj, planet, planet.planetID, planet.info)
-  }
 }
 
 function generateNewMap() {
@@ -102,8 +106,8 @@ function generateNewMap() {
   }
 }
 
-var CRITTERS_PER_TILE = 3
-var PLANTS_PER_TILE = 8
+var CRITTERS_PER_TILE = 0 // 3
+var PLANTS_PER_TILE = 1 // 8
 function spawnCollectibles() {
   for (var row = 0; row < 7; row++) {
     for (var col = 0; col < 5; col++) {
@@ -210,7 +214,7 @@ function onNewPlayer (data) {
   this.emit('confirm id', {playerID: newPlayer.playerID})
   this.emit('update map', {map: map})
   // Broadcast new player to other connected socket clients
-  this.broadcast.emit('new player', {playerID: newPlayer.playerID, x: newPlayer.getX(), y: newPlayer.getY()})
+  this.broadcast.emit('new player', {playerID: newPlayer.playerID, x: newPlayer.x, y: newPlayer.y})
 
   // Send existing players to the new player
   var i, existingPlayer
@@ -222,7 +226,7 @@ function onNewPlayer (data) {
       players.splice(i, 1)
       i--
     } else {
-      this.emit('new player', {playerID: existingPlayer.playerID, x: existingPlayer.getX(), y: existingPlayer.getY()})
+      this.emit('new player', {playerID: existingPlayer.playerID, x: existingPlayer.x, y: existingPlayer.y})
     }
   }
 
@@ -243,12 +247,12 @@ function onMovePlayer (data) {
   }
 
   // Update player position
-  movePlayer.setX(data.x)
-  movePlayer.setY(data.y)
-  movePlayer.setAngle(data.angle)
+  movePlayer.x = data.x
+  movePlayer.y = data.y
+  movePlayer.angle = data.angle
 
   // Broadcast updated position to connected socket clients
-  this.broadcast.emit('move player', {playerID: movePlayer.playerID, x: movePlayer.getX(), y: movePlayer.getY(), angle: movePlayer.getAngle()})
+  this.broadcast.emit('move player', {playerID: movePlayer.playerID, x: movePlayer.x, y: movePlayer.y, angle: movePlayer.angle})
 }
 
 function onTryPickup(data) {
@@ -261,10 +265,11 @@ function onTryPickup(data) {
   }
 
   var c = collectibleByID(data.itemID)
-  if (c && c.playerCarryingID === "") {
-    c.playerCarryingID = this.playerID
-    this.broadcast.emit("update collectible", c.getData())
-    console.log("Player " + movePlayer.playerID + " picking up " + c.type)
+  if (c && c.playerCarryingID === "" && movePlayer.carryingItemID === "") {
+    c.playerCarryingID = movePlayer.playerID
+    movePlayer.carryingItemID = c.itemID
+    io.emit("update collectible", c.getData())
+    console.log("Player " + movePlayer.playerID + " picking up " + c.toString())
   }
 }
 

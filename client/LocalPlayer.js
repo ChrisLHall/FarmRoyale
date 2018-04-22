@@ -1,5 +1,6 @@
 var LocalPlayer = function (playerID, group, startX, startY, playerInfo) {
   this.playerID = playerID
+  this.carryingItemID = ""
 
   this.gameObj = group.create(startX, startY, 'playerbot')
   this.gameObj.animations.add("stand", [0], 5, true)
