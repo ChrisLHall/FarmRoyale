@@ -7,6 +7,7 @@
     this.gotoX = patrolX
     this.gotoY = patrolY
     this.playerCarryingID = ""
+    this.lastPickedUpBy = ""
   }
 
   // these are defined in two places, rip
@@ -37,6 +38,7 @@
       gotoX: this.gotoX,
       gotoY: this.gotoY,
       playerCarryingID: this.playerCarryingID,
+      lastPickedUpBy: this.lastPickedUpBy,
     }
   }
 
@@ -46,8 +48,8 @@
 
   // 2 is grass, 3 is sand, 4 is swamp
   Collectible.COLLECTIBLES = {
-      "critter_butterfly": { isCritter: true, habitat: 2, moveSpeed: 1, },
-      "plant_radish": { isCritter: false, habitat: 2, moveSpeed: 0, }
+      "critter_butterfly": { isCritter: true, habitat: 2, spawnRate: 5, moveSpeed: 1, },
+      "plant_radish": { isCritter: false, habitat: 2, spawnRate: 5, moveSpeed: 0, }
   }
 
   if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {

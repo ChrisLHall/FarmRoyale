@@ -3,7 +3,23 @@ var SCREEN_HEIGHT = 912
 var game = new Phaser.Game(SCREEN_WIDTH, SCREEN_HEIGHT, Phaser.AUTO, 'gameContainer',
     { preload: preload, create: create, update: update, render: render })
 
+WebFontConfig = {
+  //  'active' means all requested fonts have finished loading
+  //  We set a 1 second delay before calling 'createText'.
+  //  For some reason if we don't the browser cannot render the text the first time it's created.
+  active: function() {
+    game.time.events.add(Phaser.Timer.SECOND, createCenterText, this);
+  },
+
+  //  The Google Fonts we want to load (specify as many as you like in the array)
+  google: {
+    families: ['Open Sans']
+  }
+};
+
 function preload () {
+  //  Load the Google WebFont Loader script
+  game.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js');
   game.load.image('voidBG', 'assets/images/void.png')
   game.load.image('grassTile', 'assets/images/grassbg.png')
   game.load.image('sandTile', 'assets/images/sandbg.png')
@@ -25,6 +41,7 @@ var socket // Socket connection
 var voidBG
 
 var player
+var centerText = null
 var dropButton
 
 var PLAYER_START_X = Collectible.TILE_SIZE / 2
@@ -34,6 +51,8 @@ var glob = {
   intermittents: [],
   otherPlayers: [],
   tiles: [],
+  gameInfo: null,
+  map: null,
   collectibles: [],
   ui: [],
   shouts: [],
@@ -49,13 +68,10 @@ var collCritterGroup
 var uiGroup
 
 function create () {
+  // socket IO is setup after font load
   game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
   // TODO remove for release????
   game.stage.disableVisibilityChange = true;
-  socket = io.connect()
-  //Kii.initializeWithSite("l1rxzy4xclvo", "f662ebb1125548bc84626f5264eb11b4", KiiSite.US)
-  // Start listening for events
-  setEventHandlers()
 
   game.physics.startSystem(Phaser.Physics.ARCADE)
   game.world.setBounds(Collectible.TILES_START_X, Collectible.TILES_START_Y, 5 * Collectible.TILE_SIZE, 7 * Collectible.TILE_SIZE)
@@ -100,6 +116,18 @@ function create () {
   dropButton.gameObj.animations.add("highlighted", [2], 1, true)
 }
 
+function createCenterText () {
+  var style = { font: "30px Open Sans", fontWeight: "bold", fill: "#222222", align: "center" };
+  centerText = game.add.text(SCREEN_WIDTH / 2, 120, "", style);
+  uiGroup.add(centerText)
+  centerText.anchor.set(0.5);
+
+  socket = io.connect()
+  //Kii.initializeWithSite("l1rxzy4xclvo", "f662ebb1125548bc84626f5264eb11b4", KiiSite.US)
+  // Start listening for events
+  setEventHandlers()
+}
+
 function clickShoutFunc (emojiIdx) {
   return function () {
     if (null != player) {
@@ -133,6 +161,7 @@ function setEventHandlers () {
   socket.on('remove player', onRemovePlayer)
 
   socket.on('update map', onUpdateMap)
+  socket.on('update game info', onUpdateGameInfo)
   socket.on('spawn collectibles', onSpawnCollectibles)
   socket.on('update collectible', onUpdateCollectible)
   socket.on('destroy collectibles', onDestroyCollectibles)
@@ -154,6 +183,7 @@ function onSocketConnected () {
 function onSocketDisconnect () {
   console.log('Disconnected from socket server')
   player.gameObj.kill()
+  player.nameTag.kill()
   socket.close()
 }
 
@@ -203,12 +233,14 @@ function onRemovePlayer (data) {
 
   playerGroup.remove(removePlayer.gameObj)
   removePlayer.gameObj.kill()
+  removePlayer.nameTag.kill()
 
   // Remove player from array
   glob.otherPlayers.splice(glob.otherPlayers.indexOf(removePlayer), 1)
 }
 
 function onUpdateMap (data) {
+  glob.map = data.map
   for (var row = 0; row < 7; row++) {
     var mapRow = data.map[row]
     var tileRow = glob.tiles[row]
@@ -248,7 +280,22 @@ function onUpdateCollectible (data) {
 }
 
 function onDestroyCollectibles (data) {
+  var numDestroyed = 0
+  var listToCheck = data.specificCollectibles // can be null
+  for (var i = 0; i < glob.collectibles.length; i++) {
+    var c = glob.collectibles[i]
+    if (!listToCheck || listToCheck.indexOf(c.itemID) >= 0) {
+      c.gameObj.kill()
+      glob.collectibles.splice(i, 1)
+      i--
+      numDestroyed++
+    }
+  }
+  console.log("Destroyed " + numDestroyed + " collectibles")
+}
 
+function onUpdateGameInfo (data) {
+  glob.gameInfo = data
 }
 
 function update () {
@@ -273,8 +320,17 @@ function update () {
   }
   voidBG.tilePosition.x = -game.camera.x / 3
   voidBG.tilePosition.y = -game.camera.y / 3
-
+  updateUIText()
   resetUIClick()
+}
+
+function updateUIText() {
+  if (centerText && glob.gameInfo) {
+    var centerTextStr = glob.gameInfo.onBreak ? "ROUND OVER. Next round in: " : "Time left: "
+    centerTextStr += glob.gameInfo.ticksLeft.toString() + "\n"
+    centerTextStr += "Collected: " + glob.gameInfo.specimensFound + "  Species: " + glob.gameInfo.typesFound + "/" + glob.gameInfo.typesAvailable
+    centerText.setText(centerTextStr)
+  }
 }
 
 function resetUIClick () {

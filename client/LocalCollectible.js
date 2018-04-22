@@ -5,6 +5,7 @@ var LocalCollectible = function (itemID, group, startX, startY, type) {
   this.targetPos = new Phaser.Point(startX, startY)
   this.lerpSpeed = Collectible.COLLECTIBLES[type].moveSpeed
   this.playerCarryingID = ""
+  this.lastPickedUpBy = ""
 
   this.gameObj = group.create(startX, startY, type)
   this.gameObj.animations.add("stand", [0], 5, true)
@@ -19,6 +20,7 @@ var LocalCollectible = function (itemID, group, startX, startY, type) {
 
 LocalCollectible.prototype.setData = function (data) {
   this.targetPos = new Phaser.Point(data.gotoX, data.gotoY)
+  this.lastPickedUpBy = data.lastPickedUpBy
   if (this.playerCarryingID !== "") {
     var prevCarrying = playerByID(this.playerCarryingID)
     if (prevCarrying) {
@@ -42,7 +44,7 @@ LocalCollectible.prototype.update = function () {
       this.gameObj.y = p.gameObj.y
       if (this.isCritter && this.gameObj.animations.currentAnim.name !== "move") {
         this.gameObj.animations.play("move")
-      } else if (!this.isCritter && this.gameObj.animations.currentAnim.name !== "move") {
+      } else if (!this.isCritter && this.gameObj.animations.currentAnim.name !== "harvested") {
         this.gameObj.animations.play("harvested")
       }
     }
@@ -65,6 +67,9 @@ LocalCollectible.prototype.update = function () {
     this.gameObj.x += delta.x
     this.gameObj.y += delta.y
   } else {
+    if (this.lastPickedUpBy !== "" && this.gameObj.animations.currentAnim.name !== "harvested") {
+        this.gameObj.animations.play("harvested")
+    }
     this.gameObj.x = this.targetPos.x
     this.gameObj.y = this.targetPos.y
   }

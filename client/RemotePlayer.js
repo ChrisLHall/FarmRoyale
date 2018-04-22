@@ -17,6 +17,10 @@ var RemotePlayer = function (playerID, group, startX, startY, playerInfo) {
 
   this.targetPos = new Phaser.Point(x, y)
   this.lerpSpeed = 6
+
+  var style = { font: "20px Open Sans", fill: "#222233", align: "center" };
+  this.nameTag = game.add.text(-5000, -5000, "", style);
+  this.nameTag.anchor.setTo(0.5, 0)
 }
 
 RemotePlayer.prototype.exists = function () {
@@ -38,6 +42,17 @@ RemotePlayer.prototype.update = function () {
   }
   this.gameObj.x += delta.x
   this.gameObj.y += delta.y
+
+  this.nameTag.x = this.gameObj.x
+  this.nameTag.y = this.gameObj.y + 50
+  var nameTagText = "Mr Roboto\n"
+  if (glob.gameInfo.typesFound > 0 && glob.gameInfo.playerIDsMostTypes.indexOf(this.playerID) >= 0) {
+    nameTagText += "*Most Species: " + glob.gameInfo.mostPlayerTypes + "*\n"
+  }
+  if (glob.gameInfo.specimensFound > 0 && glob.gameInfo.playerIDsMostTypes.indexOf(this.playerID) >= 0) {
+    nameTagText += "*Most Collected: " + glob.gameInfo.mostPlayerSpecimens + "*\n"
+  }
+  this.nameTag.setText(nameTagText)
 }
 
 RemotePlayer.prototype.setTargetPos = function(x, y) {

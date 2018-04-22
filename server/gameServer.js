@@ -21,7 +21,8 @@ var port = process.env.PORT || 5050
 
 var players	// Array of connected players
 var collectibles
-var currentPlanetIdx = 0 // checking for modified planets
+var gameInfo
+var persistentPlayerNames
 var map
 
 /* ************************************************
@@ -49,6 +50,8 @@ rl.on('line', (input) => {
 function init () {
   players = []
   collectibles = []
+  persistentPlayerNames = {}
+  gameInfo = newGameInfo()
   generateNewMap()
   spawnCollectibles()
   // Start listening for events
@@ -56,38 +59,23 @@ function init () {
   setInterval(tick, 1000)
 }
 
-const PATROL_DIST = 80
-function tick() {
-  // move critters, countdown
-
-  for (var i = 0; i < collectibles.length; i++) {
-    var c = collectibles[i]
-    var updated = false
-    if (Collectible.COLLECTIBLES[c.type].isCritter && Math.random() < .5) {
-      c.gotoX = c.patrolX + (-.5 + Math.random()) * PATROL_DIST
-      c.gotoY = c.patrolY + (-.5 + Math.random()) * PATROL_DIST
-      updated = true
-    }
-    // check for pickups whose player has left
-    if (c.playerCarryingID !== "") {
-      var p = playerByID(c.playerCarryingID)
-      if (!p) {
-        console.log("The player carrying " + c.toString() + " is gone.")
-        c.playerCarryingID = ""
-        updated = true
-      } else if (p.carryingItemID !== c.itemID) {
-        console.log("Player doesnt know they are carrying " + c)
-        p.carryingItemID = c.itemID
-        updated = true
-      }
-    }
-    if (updated) {
-      io.emit("update collectible", c.getData())
-    }
-  }
+function DEBUGReplant () {
 }
 
-function DEBUGReplant () {
+const GAME_TICKS = 40 // 360
+const BREAK_TICKS = 10 // 90
+function newGameInfo () {
+  return {
+    onBreak: false,
+    ticksLeft: GAME_TICKS,
+    typesFound: 0,
+    typesAvailable: 0,
+    specimensFound: 0,
+    playerIDsMostTypes: [],
+    mostPlayerTypes: 0,
+    playerIDsMostSpecimens: [],
+    mostPlayerSpecimens: 0,
+  }
 }
 
 function generateNewMap() {
@@ -135,6 +123,7 @@ function spawnCollectibles() {
     }
   }
   io.emit('spawn collectibles', getCollectiblesData())
+  tallyTypesAvailable()
 }
 
 function getCollectiblesData() {
@@ -145,18 +134,192 @@ function getCollectiblesData() {
   return data
 }
 
-function despawnCollectibles(doSend, includeFarmTile, specificTile) {
+function despawnCollectibles(specificTile) {
+  var specificCollectibles = null
   if (specificTile) {
-
+    specificCollectibles = []
+    for (var i = 0; i < collectibles.length; i++) {
+      var c = collectibles[i]
+      collectibles.splice(i, 1)
+      i--
+      specificCollectibles.push(c.itemID)
+    }
   } else {
-    for (var row = 0; row < 7; row++) {
-      for (var col = 0; col < 5; col++) {
-        if (!(row === 3 && col === 2) || includeFarmTile) {
-          // TODO actually do it
-        }
+    collectibles = []
+  }
+  io.emit("destroy collectibles", {specificCollectibles: specificCollectibles})
+}
+
+const PATROL_DIST = 80
+function tick() {
+  // move critters, countdown
+  for (var i = 0; i < collectibles.length; i++) {
+    var c = collectibles[i]
+    var updated = false
+    if (Collectible.COLLECTIBLES[c.type].isCritter && Math.random() < .5) {
+      c.gotoX = c.patrolX + (-.5 + Math.random()) * PATROL_DIST
+      c.gotoY = c.patrolY + (-.5 + Math.random()) * PATROL_DIST
+      updated = true
+    }
+    // check for pickups whose player has left
+    if (c.playerCarryingID !== "") {
+      var p = playerByID(c.playerCarryingID)
+      if (!p) {
+        console.log("The player carrying " + c.toString() + " is gone.")
+        c.playerCarryingID = ""
+        updated = true
+      } else if (p.carryingItemID !== c.itemID) {
+        console.log("Player doesnt know they are carrying " + c)
+        p.carryingItemID = c.itemID
+        updated = true
+      }
+    }
+    if (updated) {
+      io.emit("update collectible", c.getData())
+    }
+  }
+  // check for players with orphaned carrying items
+  for (var i = 0; i < players.length; i++) {
+    var p = players[i]
+    if (p.carryingItemID !== "") {
+      var c = collectibleByID(p.carryingItemID)
+      if (c && c.playerCarryingID !== p.playerID) {
+        // someone else, or nobody, is carrying that item
+        p.carryingItemID = ""
       }
     }
   }
+
+  // update game info
+  if (!gameInfo.onBreak) {
+    tallyScores()
+  }
+
+  gameInfo.ticksLeft--
+  if (gameInfo.onBreak && gameInfo.ticksLeft == 5) {
+    // despawn everything now
+    despawnCollectibles()
+  } else if (gameInfo.ticksLeft < 0) {
+    gameInfo.onBreak = !gameInfo.onBreak
+    gameInfo.ticksLeft = gameInfo.onBreak ? BREAK_TICKS : GAME_TICKS
+    if (gameInfo.onBreak) {
+      // everything has to be dropped
+      for (var i = 0; i < collectibles.length; i++) {
+        var c = collectibles[i]
+        if ("" !== c.playerCarryingID) {
+          var p = playerByID(c.playerCarryingID)
+          c.playerCarryingID = ""
+          if (p) {
+            p.carryingItemID = ""
+          }
+          io.emit("update collectible", c.getData())
+        }
+      }
+    } else {
+      // rebuild everything and start over
+      spawnCollectibles()
+    }
+  }
+  io.emit("update game info", gameInfo)
+}
+
+function tallyTypesAvailable () {
+  var available = {}
+  var numAvailable = 0
+  for (var i = 0; i < collectibles.length; i++) {
+    var c = collectibles[i]
+    if (!available.hasOwnProperty(c.type)) {
+      available[c.type] = true
+      numAvailable++
+    }
+  }
+  gameInfo.typesAvailable = numAvailable
+}
+
+function tallyScores () {
+  var numSpecimens = 0
+  var types = {}
+  var numTypes = 0
+  var specimensPerPlayer = {}
+  var typesPerPlayer = {}
+  var numTypesPerPlayer = {}
+  for (var i = 0; i < collectibles.length; i++) {
+    var c = collectibles[i]
+    var tile = Collectible.getTileAt(c.patrolX, c.patrolY)
+    if (tile.row === 3 && tile.col === 2) {
+      var p = c.lastPickedUpBy
+      if (p === "") {
+        console.log(c.toString() + " in the middle but never picked up")
+        continue
+      }
+      numSpecimens++
+      if (specimensPerPlayer.hasOwnProperty(p)) {
+        specimensPerPlayer[p]++
+      } else {
+        specimensPerPlayer[p] = 1
+      }
+
+      if (!typesPerPlayer.hasOwnProperty(p)) {
+        typesPerPlayer[p] = {}
+      }
+      if (!typesPerPlayer[p].hasOwnProperty(c.type)) {
+        typesPerPlayer[p][c.type] = true
+        if (numTypesPerPlayer.hasOwnProperty[p]) {
+          numTypesPerPlayer[p]++
+        } else {
+          numTypesPerPlayer[p] = 1
+        }
+      }
+
+      if (!types.hasOwnProperty(c.type)) {
+        types[c.type] = true
+        numTypes++
+      }
+    }
+  }
+
+  var highestPlayerSpecimens = 0
+  for (var player in specimensPerPlayer) {
+    if (specimensPerPlayer.hasOwnProperty(player)) {
+      var specs = specimensPerPlayer[player]
+      if (specs > highestPlayerSpecimens) {
+        highestPlayerSpecimens = specs
+      }
+    }
+  }
+  var playersMatchingHighestSpecimens = []
+  for (var player in specimensPerPlayer) {
+    if (specimensPerPlayer.hasOwnProperty(player)) {
+      if (specimensPerPlayer[player] >= highestPlayerSpecimens) {
+        playersMatchingHighestSpecimens.push(player)
+      }
+    }
+  }
+
+  var highestPlayerTypes = 0
+  for (var player in numTypesPerPlayer) {
+    if (numTypesPerPlayer.hasOwnProperty(player)) {
+      var num = numTypesPerPlayer[player]
+      if (num > highestPlayerTypes) {
+        highestPlayerTypes = num
+      }
+    }
+  }
+  var playersMatchingHighestTypes = []
+  for (var player in numTypesPerPlayer) {
+    if (numTypesPerPlayer.hasOwnProperty(player)) {
+      if (numTypesPerPlayer[player] >= highestPlayerTypes) {
+        playersMatchingHighestTypes.push(player)
+      }
+    }
+  }
+
+  gameInfo.specimensFound = numSpecimens
+  gameInfo.typesFound = numTypes
+  gameInfo.mostPlayerSpecimens = highestPlayerSpecimens
+  gameInfo.playerIDsMostSpecimens = playersMatchingHighestSpecimens
+  gameInfo.mostPlayerTypes = highestPlayerTypes
+  gameInfo.playerIDsMostTypes = playersMatchingHighestTypes
 }
 
 /* ************************************************
@@ -218,6 +381,7 @@ function onNewPlayer (data) {
 
   this.emit('confirm id', {playerID: newPlayer.playerID})
   this.emit('update map', {map: map})
+  this.emit("update game info", gameInfo)
   // Broadcast new player to other connected socket clients
   this.broadcast.emit('new player', {playerID: newPlayer.playerID, x: newPlayer.x, y: newPlayer.y})
 
@@ -261,6 +425,9 @@ function onMovePlayer (data) {
 }
 
 function onTryPickup (data) {
+  if (gameInfo.onBreak) {
+    return
+  }
   var movePlayer = playerBySocket(this)
 
   // Player not found
@@ -274,6 +441,7 @@ function onTryPickup (data) {
     var tile = Collectible.getTileAt(c.patrolX, c.patrolY)
     if (map[tile.row][tile.col] >= 2) {
       c.playerCarryingID = movePlayer.playerID
+      c.lastPickedUpBy = movePlayer.playerID
       movePlayer.carryingItemID = c.itemID
       io.emit("update collectible", c.getData())
       console.log("Player " + movePlayer.playerID + " picking up " + c.toString())
@@ -282,6 +450,9 @@ function onTryPickup (data) {
 }
 
 function onTryDrop (data) {
+  if (gameInfo.onBreak) {
+    return
+  }
   var movePlayer = playerBySocket(this)
 
   // Player not found
