@@ -16,6 +16,7 @@ var LocalPlayer = function (playerID, group, startX, startY, playerInfo) {
 
   this.targetPos = new Phaser.Point(startX, startY)
   this.lerpSpeed = 5
+  this.finishedMoving = true
 
   this.setInfo(playerInfo)
 }
@@ -34,6 +35,7 @@ LocalPlayer.prototype.exists = function () {
   return this.gameObj.exists
 }
 
+var PICKUP_DIST = 40
 LocalPlayer.prototype.update = function () {
   //  only move when you click
   var clickPoint = new Phaser.Point(game.input.activePointer.worldX, game.input.activePointer.worldY)
@@ -43,6 +45,7 @@ LocalPlayer.prototype.update = function () {
       .getMagnitude() > 70) {
     //game.physics.arcade.moveToPointer(this.gameObj, 300);
     this.targetPos = clickPoint
+    this.finishedMoving = false
   }
 
   var delta = Phaser.Point.subtract(this.targetPos, this.gameObj.position)
@@ -57,11 +60,24 @@ LocalPlayer.prototype.update = function () {
     if (this.gameObj.animations.currentAnim.name !== "stand") {
       this.gameObj.animations.play("stand")
     }
+    if (!this.finishedMoving) {
+      this.finishedMoving = true
+      this.checkForPickup()
+    }
     // arrived
   }
   this.gameObj.x += delta.x
   this.gameObj.y += delta.y
+}
 
+LocalPlayer.prototype.checkForPickup = function () {
+  for (var i = 0; i < glob.collectibles.length; i++) {
+    var c = glob.collectibles[i]
+    if (c.playerCarryingID === "" && Math.abs(this.gameObj.x - c.gameObj.x) < PICKUP_DIST && Math.abs(this.gameObj.y - c.gameObj.y) < PICKUP_DIST) {
+      socket.emit("try pickup", {x: this.gameObj.x, y: this.gameObj.y, itemID: c.itemID})
+      break
+    }
+  }
 }
 
 window.LocalPlayer = LocalPlayer

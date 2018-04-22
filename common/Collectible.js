@@ -14,16 +14,16 @@
   Collectible.TILES_START_Y = -3072
   Collectible.TILE_SIZE = 1024
 
-  Collectible.prototype.getCurrentTile = function () {
+  Collectible.getTileAt = function (x, y) {
     var tileX = 0
     for (var i = 0; i < 5; i++) {
-      if (this.patrolX >= TILES_START_X + i * TILE_SIZE) {
+      if (x >= TILES_START_X + i * TILE_SIZE) {
         tileX = i
       }
     }
     var tileY = 0
     for (var i = 0; i < 7; i++) {
-      if (this.patrolY >= TILES_START_Y + i * TILE_SIZE) {
+      if (y >= TILES_START_Y + i * TILE_SIZE) {
         tileY = i
       }
     }
@@ -43,7 +43,7 @@
 
   // 2 is grass, 3 is sand, 4 is swamp
   Collectible.COLLECTIBLES = {
-      "critter_butterfly": { isCritter: true, habitat: 2, moveSpeed: 2, },
+      "critter_butterfly": { isCritter: true, habitat: 2, moveSpeed: 1, },
       "plant_radish": { isCritter: false, habitat: 2, moveSpeed: 0, }
   }
 

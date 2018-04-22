@@ -42,7 +42,8 @@ var clickUsedByUI = false
 
 var tileGroup
 var playerGroup
-var collectibleGroup
+var collPlantGroup
+var collCritterGroup
 var uiGroup
 
 function create () {
@@ -78,7 +79,8 @@ function create () {
     glob.tiles.push(rowOfTiles)
   }
 
-  collectibleGroup = game.add.group()
+  collPlantGroup = game.add.group()
+  collCritterGroup = game.add.group()
 
   playerGroup = game.add.group();
   playerGroup.enableBody = true;
@@ -122,6 +124,8 @@ function setEventHandlers () {
 
   socket.on('update map', onUpdateMap)
   socket.on('spawn collectibles', onSpawnCollectibles)
+  socket.on('update collectible', onUpdateCollectible)
+  socket.on('destroy collectibles', onDestroyCollectibles)
 
   socket.on('shout', onShout)
   socket.on('chat message', onReceiveChat)
@@ -216,9 +220,22 @@ function onUpdateMap (data) {
 
 function onSpawnCollectibles (data) {
   for (var i = 0; i < data.collectibles.length; i++) {
-    var collectibleData = data.collectibles[i]
-    
+    var cData = data.collectibles[i]
+    var group = Collectible.COLLECTIBLES[cData.type].isCritter ? collCritterGroup : collPlantGroup
+    var c = new LocalCollectible(cData.itemID, group, cData.gotoX, cData.gotoY, cData.type)
+    glob.collectibles.push(c)
   }
+}
+
+function onUpdateCollectible (data) {
+  var coll = collectibleByID(data.itemID)
+  if (coll) {
+    coll.setData(data)
+  }
+}
+
+function onDestroyCollectibles (data) {
+
 }
 
 function update () {
@@ -234,6 +251,9 @@ function update () {
   }
   for (var i = 0; i < glob.otherPlayers.length; i++) {
     glob.otherPlayers[i].update()
+  }
+  for (var i = 0; i < glob.collectibles.length; i++) {
+    glob.collectibles[i].update()
   }
   for (var i = 0; i < glob.shouts.length; i++) {
     glob.shouts[i].update()
@@ -260,9 +280,20 @@ function playerByID (playerID) {
       return glob.otherPlayers[i]
     }
   }
+  if (player.playerID === playerID) {
+    return player
+  }
   return null
 }
 
+function collectibleByID (itemID) {
+  for (var i = 0; i < glob.collectibles.length; i++) {
+    if (glob.collectibles[i].itemID === itemID) {
+      return glob.collectibles[i]
+    }
+  }
+  return null
+}
 
 // TEMP CHAT SYSTEM
 function onReceiveChat(msg) {

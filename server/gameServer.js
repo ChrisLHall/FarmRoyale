@@ -56,8 +56,18 @@ function init () {
   setInterval(tick, 1000)
 }
 
+const PATROL_DIST = 80
 function tick() {
   // move critters, countdown
+
+  for (var i = 0; i < collectibles.length; i++) {
+    var c = collectibles[i]
+    if (Collectible.COLLECTIBLES[c.type].isCritter && Math.random() < .5) {
+      c.gotoX = c.patrolX + (-.5 + Math.random()) * PATROL_DIST
+      c.gotoY = c.patrolY + (-.5 + Math.random()) * PATROL_DIST
+      io.emit("update collectible", c.getData())
+    }
+  }
 }
 
 function DEBUGReplant () {
@@ -92,8 +102,8 @@ function generateNewMap() {
   }
 }
 
-var CRITTERS_PER_TILE = 5
-var PLANTS_PER_TILE = 10
+var CRITTERS_PER_TILE = 3
+var PLANTS_PER_TILE = 8
 function spawnCollectibles() {
   for (var row = 0; row < 7; row++) {
     for (var col = 0; col < 5; col++) {
@@ -103,14 +113,14 @@ function spawnCollectibles() {
       } else {
         for (var i = 0; i < CRITTERS_PER_TILE; i++) {
           // TODO list of colls that are critters and in the right habitat
-          var x = Collectible.TILES_START_X + (col + Math.random()) * Collectible.TILE_SIZE
-          var y = Collectible.TILES_START_Y + (row + Math.random()) * Collectible.TILE_SIZE
+          var x = Collectible.TILES_START_X + (col + .1 + Math.random() * .8) * Collectible.TILE_SIZE
+          var y = Collectible.TILES_START_Y + (row + .1 + Math.random() * .8) * Collectible.TILE_SIZE
           collectibles.push(new Collectible(uuidv4(), "critter_butterfly", x, y))
         }
         for (var i = 0; i < PLANTS_PER_TILE; i++) {
           // TODO list of colls that are plants and in the right habitat
-          var x = Collectible.TILES_START_X + (col + Math.random()) * Collectible.TILE_SIZE
-          var y = Collectible.TILES_START_Y + (row + Math.random()) * Collectible.TILE_SIZE
+          var x = Collectible.TILES_START_X + (col + .1 + Math.random() * .8) * Collectible.TILE_SIZE
+          var y = Collectible.TILES_START_Y + (row + .1 + Math.random() * .8) * Collectible.TILE_SIZE
           collectibles.push(new Collectible(uuidv4(), "plant_radish", x, y))
         }
       }
@@ -162,6 +172,7 @@ function onSocketConnection (client) {
   // Listen for move player message
   client.on('move player', onMovePlayer)
 
+  client.on("try pickup", onTryPickup)
   client.on('shout', onShout)
   // TEMP chat
   client.on('chat message', onReceiveChat)
@@ -218,7 +229,7 @@ function onNewPlayer (data) {
   // Add new player to the players array after duplicates have been removed
   players.push(newPlayer)
 
-  //this.emit('spawn collectibles', getCollectiblesData())
+  this.emit('spawn collectibles', getCollectiblesData())
 }
 
 // Player has moved
@@ -238,6 +249,23 @@ function onMovePlayer (data) {
 
   // Broadcast updated position to connected socket clients
   this.broadcast.emit('move player', {playerID: movePlayer.playerID, x: movePlayer.getX(), y: movePlayer.getY(), angle: movePlayer.getAngle()})
+}
+
+function onTryPickup(data) {
+  var movePlayer = playerBySocket(this)
+
+  // Player not found
+  if (null == movePlayer) {
+    console.log('Player not found for connection: ' + this.id)
+    return
+  }
+
+  var c = collectibleByID(data.itemID)
+  if (c && c.playerCarryingID === "") {
+    c.playerCarryingID = this.playerID
+    this.broadcast.emit("update collectible", c.getData())
+    console.log("Player " + movePlayer.playerID + " picking up " + c.type)
+  }
 }
 
 function onShout (data) {
@@ -269,6 +297,15 @@ function playerBySocket (socket) {
   for (i = 0; i < players.length; i++) {
     if (players[i].socket === socket) {
       return players[i]
+    }
+  }
+  return null
+}
+
+function collectibleByID (itemID) {
+  for (var i = 0; i < collectibles.length; i++) {
+    if (collectibles[i].itemID === itemID) {
+      return collectibles[i]
     }
   }
   return null
