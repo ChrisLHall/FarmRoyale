@@ -12,8 +12,11 @@ function preload () {
   game.load.image('emptyTile', 'assets/images/emptybg.png')
 
   game.load.spritesheet('emojis', 'assets/images/emojis.png', 64, 64)
-
   game.load.spritesheet('playerbot', 'assets/images/roboto.png', 64, 64)
+
+  game.load.spritesheet('plant_radish', 'assets/images/plant_radish.png', 64, 64)
+
+  game.load.spritesheet('critter_butterfly', 'assets/images/critter_butterfly.png', 64, 64)
 }
 
 var socket // Socket connection
@@ -21,12 +24,9 @@ var socket // Socket connection
 var voidBG
 
 var player
-// The base of our player
-var TILES_START_X = -2048
-var TILES_START_Y = -3072
-var TILE_SIZE = 1024
-var PLAYER_START_X = TILE_SIZE / 2
-var PLAYER_START_Y = TILE_SIZE / 2
+
+var PLAYER_START_X = Collectible.TILE_SIZE / 2
+var PLAYER_START_Y = Collectible.TILE_SIZE / 2
 
 var glob = {
   intermittents: [],
@@ -53,7 +53,7 @@ function create () {
   setEventHandlers()
 
   game.physics.startSystem(Phaser.Physics.ARCADE)
-  game.world.setBounds(TILES_START_X, TILES_START_Y, 5 * TILE_SIZE, 7 * TILE_SIZE)
+  game.world.setBounds(Collectible.TILES_START_X, Collectible.TILES_START_Y, 5 * Collectible.TILE_SIZE, 7 * Collectible.TILE_SIZE)
 
   // Our tiled scrolling background
   voidBG = game.add.tileSprite(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 'voidBG')
@@ -68,7 +68,7 @@ function create () {
       if (row === 3 && col === 2) {
         texture = "farmTile"
       }
-      tile = game.add.tileSprite(TILES_START_X + col * TILE_SIZE, TILES_START_Y + row * TILE_SIZE, TILE_SIZE / 2, TILE_SIZE / 2, "farmTile")
+      tile = game.add.tileSprite(Collectible.TILES_START_X + col * Collectible.TILE_SIZE, Collectible.TILES_START_Y + row * Collectible.TILE_SIZE, Collectible.TILE_SIZE / 2, Collectible.TILE_SIZE / 2, "farmTile")
       tile.scale.setTo(2, 2) // expand to 1024x1024
       tileGroup.add(tile)
       rowOfTiles.push(tile)

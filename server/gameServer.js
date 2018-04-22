@@ -3,12 +3,11 @@ var path = require('path')
 express = require('express')
 var app = express()
 var http = require('http').Server(app)
-var io = require('socket.io')(http, {origins:'localhost:* 192.168.*.*:* http://chrislhall.net:* http://www.chrislhall.net:* http://chrislhall.net/bees http://www.chrislhall.net/bees'})
+var io = require('socket.io')(http, {origins:'localhost:* 192.168.*.*:* http://chrislhall.net:* http://www.chrislhall.net:* '})
 var uuidv4 = require('uuid/v4')
 
 var Player = require('../common/Player')
-var Planet = require('../common/Planet')
-var Cactus = require('../common/Cactus')
+var Collectible = require('../common/Collectible')
 var CommonUtil = require('../common/CommonUtil')
 var kii = require('kii-cloud-sdk').create()
 var KiiServerCreds = require('./KiiServerCreds')()
@@ -21,7 +20,7 @@ const rl = readline.createInterface({
 var port = process.env.PORT || 5050
 
 var players	// Array of connected players
-var planets // Array of planets
+var collectibles
 var currentPlanetIdx = 0 // checking for modified planets
 var map
 
@@ -49,7 +48,9 @@ rl.on('line', (input) => {
 
 function init () {
   players = []
+  collectibles = []
   generateNewMap()
+  spawnCollectibles()
   // Start listening for events
   setEventHandlers()
   setInterval(tick, 500)
@@ -59,33 +60,6 @@ function tick() {
   //io.emit('server tick', {serverTicks: metadata["serverticks"]})
 
   growPlants()
-}
-
-// Process the map
-function growPlants () {
-  /*
-  for (var planetIdx = 0; planetIdx < planets.length; planetIdx++){
-    var planet = planets[planetIdx]
-    var planetSlots = planet.info.slots
-    var changed = false
-    for (var slotIdx = 0; slotIdx < 6; slotIdx++) {
-      var slot = planetSlots[slotIdx]
-      var age = metadata["serverticks"] - slot.birthTick
-      if (slot.type === "empty" && age > 20 && Math.random() < .05) {
-        slot.type = "cactus1"
-        slot.birthTick = metadata["serverticks"]
-        changed = true
-      } else if (slot.type.startsWith("cactus") && age > 50 && Math.random() < .05) {
-        slot.type = "empty"
-        slot.birthTick = metadata["serverticks"]
-        changed = true
-      }
-    }
-    if (changed) {
-      setPlanetInfo(planet.kiiObj, planet, planet.planetID, planet.info)
-    }
-  }
-  */
 }
 
 function DEBUGReplant () {
@@ -117,6 +91,46 @@ function generateNewMap() {
     }
     console.log(rowList.toString())
     map.push(rowList)
+  }
+}
+
+var CRITTERS_PER_TILE = 5
+var PLANTS_PER_TILE = 10
+function spawnCollectibles() {
+  for (var row = 0; row < 7; row++) {
+    for (var col = 0; col < 5; col++) {
+      var onThisTile = 0
+      if (row === 3 && col === 2) {
+        // nothin
+      } else {
+        for (var i = 0; i < CRITTERS_PER_TILE; i++) {
+          // TODO list of colls that are critters and in the right habitat
+          var x = Collectible.TILES_START_X + (col + Math.random()) * Collectible.TILE_SIZE
+          var y = Collectible.TILES_START_Y + (row + Math.random()) * Collectible.TILE_SIZE
+          collectibles.push(new Collectible(uuidv4(), "critter_butterfly", x, y))
+        }
+        for (var i = 0; i < PLANTS_PER_TILE; i++) {
+          // TODO list of colls that are plants and in the right habitat
+          var x = Collectible.TILES_START_X + (col + Math.random()) * Collectible.TILE_SIZE
+          var y = Collectible.TILES_START_Y + (row + Math.random()) * Collectible.TILE_SIZE
+          collectibles.push(new Collectible(uuidv4(), "plant_radish", x, y))
+        }
+      }
+    }
+  }
+}
+
+function despawnCollectibles(doSend, includeFarmTile, specificTile) {
+  if (specificTile) {
+
+  } else {
+    for (var row = 0; row < 7; row++) {
+      for (var col = 0; col < 5; col++) {
+        if (!(row === 3 && col === 2) || includeFarmTile) {
+          // TODO actually do it
+        }
+      }
+    }
   }
 }
 

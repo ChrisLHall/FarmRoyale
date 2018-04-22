@@ -37,7 +37,7 @@ module.exports = function(grunt) {
           src: 'index.html',
           dest: 'build/'
         },{
-          src: 'favicon_dev.ico',
+          src: 'favicon.ico',
           dest: 'build/'
         },{
           src: 'style/*.css',
@@ -62,7 +62,7 @@ module.exports = function(grunt) {
           src: 'index.html',
           dest: 'build/'
         },{
-          src: 'favicon_dist.ico',
+          src: 'favicon.ico',
           dest: 'build/'
         },{
           src: 'style/*.css',
@@ -73,7 +73,7 @@ module.exports = function(grunt) {
     rename: {
       dev: {
         files: [{
-          src: 'build/favicon_dev.ico',
+          src: 'build/favicon.ico',
           dest: 'build/favicon.ico'
         },{
           src: 'build/js/app.js',
@@ -89,7 +89,7 @@ module.exports = function(grunt) {
       dist: {
         files: [{
           cwd: 'build',
-          src: 'favicon_dist.ico',
+          src: 'favicon.ico',
           dest: 'favicon.ico'
         }]
       }
