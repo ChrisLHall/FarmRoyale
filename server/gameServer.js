@@ -155,7 +155,7 @@ function despawnCollectibles(specificTile) {
     for (var i = 0; i < collectibles.length; i++) {
       var c = collectibles[i]
       var tile = Collectible.getTileAt(c.patrolX, c.patrolY)
-      if (tile.row === specificTile.row && tile.col === specificTile.col) {
+      if (c.playerCarryingID === "" && tile.row === specificTile.row && tile.col === specificTile.col) {
         collectibles.splice(i, 1)
         i--
         specificCollectibles.push(c.itemID)
@@ -282,7 +282,7 @@ function tallyScores () {
     if (tile.row === 3 && tile.col === 2) {
       var p = c.lastPickedUpBy
       if (p === "") {
-        console.log(c.toString() + " in the middle but never picked up")
+        // in the middle but never picked up
         continue
       }
       numSpecimens++
@@ -295,13 +295,12 @@ function tallyScores () {
       if (!typesPerPlayer.hasOwnProperty(p)) {
         typesPerPlayer[p] = {}
       }
+      if (!numTypesPerPlayer.hasOwnProperty(p)) {
+        numTypesPerPlayer[p] = 0
+      }
       if (!typesPerPlayer[p].hasOwnProperty(c.type)) {
         typesPerPlayer[p][c.type] = true
-        if (numTypesPerPlayer.hasOwnProperty[p]) {
-          numTypesPerPlayer[p]++
-        } else {
-          numTypesPerPlayer[p] = 1
-        }
+        numTypesPerPlayer[p]++
       }
 
       if (!types.hasOwnProperty(c.type)) {
