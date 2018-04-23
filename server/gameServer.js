@@ -249,6 +249,7 @@ function tick() {
       }
     } else {
       // rebuild everything and start over
+      generateNewMap()
       spawnCollectibles()
     }
   }
