@@ -57,8 +57,9 @@ function init () {
   setInterval(tick, 1000)
 }
 
-const GAME_TICKS = 40 // 360
-const BREAK_TICKS = 10 // 90
+const GAME_TICKS = 240
+const BREAK_TICKS = 60
+var TICKS_PER_REMOVE_TILE = Math.floor(GAME_TICKS / 30) // slightly fewer than all the tiles
 function newGameInfo () {
   return {
     onBreak: false,
@@ -153,9 +154,12 @@ function despawnCollectibles(specificTile) {
     specificCollectibles = []
     for (var i = 0; i < collectibles.length; i++) {
       var c = collectibles[i]
-      collectibles.splice(i, 1)
-      i--
-      specificCollectibles.push(c.itemID)
+      var tile = Collectible.getTileAt(c.patrolX, c.patrolY)
+      if (tile.row === specificTile.row && tile.col === specificTile.col) {
+        collectibles.splice(i, 1)
+        i--
+        specificCollectibles.push(c.itemID)
+      }
     }
   } else {
     collectibles = []
@@ -200,6 +204,17 @@ function tick() {
         // someone else, or nobody, is carrying that item
         p.carryingItemID = ""
       }
+    }
+  }
+
+  if (!gameInfo.onBreak && gameInfo.ticksLeft % TICKS_PER_REMOVE_TILE === 0) {
+    var row = Math.floor(Math.random() * 7)
+    var col = Math.floor(Math.random() * 5)
+    if (row !== 3 || col !== 2) {
+    console.log("Destroying tile at " + row + "," + col + ":" + map[row][col])
+      map[row][col] = 0
+      io.emit("update map", {map: map})
+      despawnCollectibles({row: row, col: col})
     }
   }
 
@@ -489,15 +504,18 @@ function onTryDrop (data) {
   if ("" !== movePlayer.carryingItemID) {
     var c = collectibleByID(movePlayer.carryingItemID)
     if (c) {
-      // todo check the tile
-      c.playerCarryingID = ""
-      movePlayer.carryingItemID = ""
-      c.patrolX = data.x
-      c.patrolY = data.y
-      c.gotoX = data.x
-      c.gotoY = data.y
-      io.emit("update collectible", c.getData())
-      console.log("Player " + movePlayer.playerID + " dropped " + c.toString())
+      var tile = Collectible.getTileAt(data.x, data.y)
+      if (map[tile.row][tile.col] !== 0) {
+        // todo check the tile
+        c.playerCarryingID = ""
+        movePlayer.carryingItemID = ""
+        c.patrolX = data.x
+        c.patrolY = data.y
+        c.gotoX = data.x
+        c.gotoY = data.y
+        io.emit("update collectible", c.getData())
+        console.log("Player " + movePlayer.playerID + " dropped " + c.toString() + " at tile " + tile.row + "," + tile.col)
+      }
     }
   }
 }
