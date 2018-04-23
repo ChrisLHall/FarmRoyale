@@ -81,10 +81,10 @@ LocalPlayer.prototype.update = function () {
   this.nameTag.x = this.gameObj.x
   this.nameTag.y = this.gameObj.y + 50
   var nameTagText = this.name + "\n"
-  if (glob.gameInfo.typesFound > 0 && glob.gameInfo.playerIDsMostTypes.indexOf(this.playerID) >= 0) {
+  if (glob.gameInfo.typesFound && glob.gameInfo.typesFound > 0 && glob.gameInfo.playerIDsMostTypes.indexOf(this.playerID) >= 0) {
     nameTagText += "*Most Species: " + glob.gameInfo.mostPlayerTypes + "*\n"
   }
-  if (glob.gameInfo.specimensFound > 0 && glob.gameInfo.playerIDsMostTypes.indexOf(this.playerID) >= 0) {
+  if (glob.gameInfo.specimensFound && glob.gameInfo.specimensFound > 0 && glob.gameInfo.playerIDsMostTypes.indexOf(this.playerID) >= 0) {
     nameTagText += "*Most Collected: " + glob.gameInfo.mostPlayerSpecimens + "*\n"
   }
   this.nameTag.setText(nameTagText)

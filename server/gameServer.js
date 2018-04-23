@@ -172,6 +172,10 @@ function tick() {
   // move critters, countdown
   for (var i = 0; i < collectibles.length; i++) {
     var c = collectibles[i]
+    if (!c || !c.type || !Collectible.COLLECTIBLES[c.type]) {
+      console.log("Something went wrong with collectibles, not sure what!")
+      continue
+    }
     var updated = false
     if (Collectible.COLLECTIBLES[c.type].isCritter && Math.random() < .5) {
       c.gotoX = c.patrolX + (-.5 + Math.random()) * PATROL_DIST
@@ -211,7 +215,7 @@ function tick() {
     var row = Math.floor(Math.random() * 7)
     var col = Math.floor(Math.random() * 5)
     if (row !== 3 || col !== 2) {
-    console.log("Destroying tile at " + row + "," + col + ":" + map[row][col])
+      console.log("Destroying tile at " + row + "," + col + ":" + map[row][col])
       map[row][col] = 0
       io.emit("update map", {map: map})
       despawnCollectibles({row: row, col: col})
