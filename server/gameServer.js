@@ -173,7 +173,7 @@ function tick() {
   for (var i = 0; i < collectibles.length; i++) {
     var c = collectibles[i]
     if (!c || !c.type || !Collectible.COLLECTIBLES[c.type]) {
-      console.log("Something went wrong with collectibles, not sure what!")
+      console.log("Something went wrong with collectibles, not sure what! " + c.type)
       continue
     }
     var updated = false
