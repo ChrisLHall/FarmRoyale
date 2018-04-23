@@ -22,7 +22,7 @@ var port = process.env.PORT || 5050
 var players	// Array of connected players
 var collectibles
 var gameInfo
-var persistentPlayerNames
+var persistentPlayerNamesColors
 var map
 
 /* ************************************************
@@ -42,24 +42,19 @@ rl.on('line', (input) => {
   console.log("Command input: " + input);
   if (input === "quit") {
     process.exit(0)
-  } else if (input === "replant") {
-    DEBUGReplant()
   }
 });
 
 function init () {
   players = []
   collectibles = []
-  persistentPlayerNames = {}
+  persistentPlayerNamesColors = {}
   gameInfo = newGameInfo()
   generateNewMap()
   spawnCollectibles()
   // Start listening for events
   setEventHandlers()
   setInterval(tick, 1000)
-}
-
-function DEBUGReplant () {
 }
 
 const GAME_TICKS = 40 // 360
@@ -107,23 +102,41 @@ function spawnCollectibles() {
       if (row === 3 && col === 2) {
         // nothin
       } else {
+        var availableCritters = getAvailableCollectibles(map[row][col], true)
+        var availablePlants = getAvailableCollectibles(map[row][col], false)
         for (var i = 0; i < CRITTERS_PER_TILE; i++) {
-          // TODO list of colls that are critters and in the right habitat
           var x = Collectible.TILES_START_X + (col + .1 + Math.random() * .8) * Collectible.TILE_SIZE
           var y = Collectible.TILES_START_Y + (row + .1 + Math.random() * .8) * Collectible.TILE_SIZE
-          collectibles.push(new Collectible(uuidv4(), "critter_butterfly", x, y))
+          var type = availableCritters[Math.floor(Math.random() * availableCritters.length)]
+          collectibles.push(new Collectible(uuidv4(), type, x, y))
         }
         for (var i = 0; i < PLANTS_PER_TILE; i++) {
-          // TODO list of colls that are plants and in the right habitat
           var x = Collectible.TILES_START_X + (col + .1 + Math.random() * .8) * Collectible.TILE_SIZE
           var y = Collectible.TILES_START_Y + (row + .1 + Math.random() * .8) * Collectible.TILE_SIZE
-          collectibles.push(new Collectible(uuidv4(), "plant_radish", x, y))
+          var type = availablePlants[Math.floor(Math.random() * availablePlants.length)]
+          collectibles.push(new Collectible(uuidv4(), type, x, y))
         }
       }
     }
   }
   io.emit('spawn collectibles', getCollectiblesData())
   tallyTypesAvailable()
+}
+
+function getAvailableCollectibles(habitat, isCritter) {
+  var available = []
+  // multiply each entry by its spawn rate
+  for (var type in Collectible.COLLECTIBLES) {
+    if (Collectible.COLLECTIBLES.hasOwnProperty(type)) {
+      var data = Collectible.COLLECTIBLES[type]
+      if (data.isCritter === isCritter && data.habitat === habitat) {
+        for (var i = 0; i < data.spawnRate; i++) {
+          available.push(type)
+        }
+      }
+    }
+  }
+  return available
 }
 
 function getCollectiblesData() {
@@ -378,12 +391,13 @@ function onNewPlayer (data) {
   console.log("playerID of new player: " + newPlayerID)
   // Create a new player
   var newPlayer = new Player(data.x, data.y, newPlayerID, this)
+  var nameCol = getPlayerNameColor(newPlayerID)
 
-  this.emit('confirm id', {playerID: newPlayer.playerID})
+  this.emit('confirm id', {playerID: newPlayer.playerID, name: nameCol.name, color: nameCol.color})
   this.emit('update map', {map: map})
   this.emit("update game info", gameInfo)
   // Broadcast new player to other connected socket clients
-  this.broadcast.emit('new player', {playerID: newPlayer.playerID, x: newPlayer.x, y: newPlayer.y})
+  this.broadcast.emit('new player', {playerID: newPlayer.playerID, x: newPlayer.x, y: newPlayer.y, name: nameCol.name, color: nameCol.color})
 
   // Send existing players to the new player
   var i, existingPlayer
@@ -395,7 +409,7 @@ function onNewPlayer (data) {
       players.splice(i, 1)
       i--
     } else {
-      this.emit('new player', {playerID: existingPlayer.playerID, x: existingPlayer.x, y: existingPlayer.y})
+      this.emit('new player', {playerID: existingPlayer.playerID, x: existingPlayer.x, y: existingPlayer.y, name: nameCol.name, color: nameCol.color})
     }
   }
 
@@ -403,6 +417,17 @@ function onNewPlayer (data) {
   players.push(newPlayer)
 
   this.emit('spawn collectibles', getCollectiblesData())
+}
+
+function getPlayerNameColor (playerID) {
+  var result;
+  if (persistentPlayerNamesColors.hasOwnProperty(playerID)) {
+    result = persistentPlayerNamesColors[playerID]
+  } else {
+    result = {name: Player.generateRandomName(), color: Player.generateRandomColor()}
+    persistentPlayerNamesColors[playerID] = result
+  }
+  return result
 }
 
 // Player has moved

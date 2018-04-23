@@ -1,6 +1,8 @@
-var LocalPlayer = function (playerID, group, startX, startY, playerInfo) {
+var LocalPlayer = function (playerID, group, startX, startY, name, color) {
   this.playerID = playerID
   this.carryingItemID = ""
+  this.name = name
+  this.color = color
 
   this.gameObj = group.create(startX, startY, 'playerbot')
   this.gameObj.animations.add("stand", [0], 5, true)
@@ -8,6 +10,7 @@ var LocalPlayer = function (playerID, group, startX, startY, playerInfo) {
   this.gameObj.animations.play("stand")
   this.gameObj.anchor.setTo(0.5, 0.5)
   this.gameObj.bringToTop()
+  this.gameObj.tint = parseInt(this.color, 16) + 0xcccccc
   glob.intermittents.push(new IntermittentUpdater(this, function () {
     socket.emit('move player', { x: this.targetPos.x, y: this.targetPos.y, angle: this.gameObj.angle })
   }, 30))
@@ -19,20 +22,9 @@ var LocalPlayer = function (playerID, group, startX, startY, playerInfo) {
   this.lerpSpeed = 5
   this.finishedMoving = true
 
-  this.setInfo(playerInfo)
-
-  var style = { font: "20px Open Sans", fill: "#222233", align: "center" };
+  var style = { font: "20px Open Sans", fill: "#" + this.color, align: "center" };
   this.nameTag = game.add.text(-5000, -5000, "", style);
   this.nameTag.anchor.setTo(0.5, 0)
-}
-
-LocalPlayer.colors = [0xffffff, 0xaaffaa, 0xffccff]
-LocalPlayer.prototype.setInfo = function (info) {
-  CommonUtil.validate(info, Player.generateNewInfo(this.playerID))
-  this.info = info
-  if (null != this.info) {
-    this.gameObj.tint = LocalPlayer.colors[this.info.color];
-  }
 }
 
 LocalPlayer.prototype.exists = function () {
@@ -88,7 +80,7 @@ LocalPlayer.prototype.update = function () {
 
   this.nameTag.x = this.gameObj.x
   this.nameTag.y = this.gameObj.y + 50
-  var nameTagText = "Mr Roboto\n"
+  var nameTagText = this.name + "\n"
   if (glob.gameInfo.typesFound > 0 && glob.gameInfo.playerIDsMostTypes.indexOf(this.playerID) >= 0) {
     nameTagText += "*Most Species: " + glob.gameInfo.mostPlayerTypes + "*\n"
   }

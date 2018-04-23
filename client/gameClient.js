@@ -32,8 +32,16 @@ function preload () {
   game.load.spritesheet('ui_dropbutton', 'assets/images/ui_dropbutton.png', 96, 96)
 
   game.load.spritesheet('plant_radish', 'assets/images/plant_radish.png', 64, 64)
+  game.load.spritesheet('plant_acorn', 'assets/images/plant_acorn.png', 64, 64)
+  game.load.spritesheet('plant_cactus', 'assets/images/plant_cactus.png', 64, 64)
+  game.load.spritesheet('plant_mushroom', 'assets/images/plant_mushroom.png', 64, 64)
+  game.load.spritesheet('plant_mushroom2', 'assets/images/plant_mushroom2.png', 64, 64)
 
   game.load.spritesheet('critter_butterfly', 'assets/images/critter_butterfly.png', 64, 64)
+  game.load.spritesheet('critter_bug', 'assets/images/critter_bug.png', 64, 64)
+  game.load.spritesheet('critter_slime', 'assets/images/critter_slime.png', 64, 64)
+  game.load.spritesheet('critter_snake', 'assets/images/critter_snake.png', 64, 64)
+  game.load.spritesheet('critter_squirrel', 'assets/images/critter_squirrel.png', 64, 64)
 }
 
 var socket // Socket connection
@@ -120,7 +128,7 @@ function createCenterText () {
   var style = { font: "30px Open Sans", fontWeight: "bold", fill: "#222222", align: "center" };
   centerText = game.add.text(SCREEN_WIDTH / 2, 120, "", style);
   uiGroup.add(centerText)
-  centerText.anchor.set(0.5);
+  centerText.anchor.setTo(0.5, 0);
 
   socket = io.connect()
   //Kii.initializeWithSite("l1rxzy4xclvo", "f662ebb1125548bc84626f5264eb11b4", KiiSite.US)
@@ -191,7 +199,7 @@ function onConfirmID (data) {
   console.log("confirmed my ID: " + data.playerID)
   window.localStorage.setItem("preferredID", data.playerID)
 
-  player = new LocalPlayer(data.playerID, playerGroup, PLAYER_START_X, PLAYER_START_Y, Player.generateNewInfo(data.playerID))
+  player = new LocalPlayer(data.playerID, playerGroup, PLAYER_START_X, PLAYER_START_Y, data.name, data.color)
 
   game.camera.follow(player.gameObj, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1)
   game.camera.focusOnXY(PLAYER_START_X, PLAYER_START_Y)
@@ -203,7 +211,7 @@ function onNewPlayer (data) {
   console.log('New player connected:', data.playerID)
 
   // Add new player to the remote players array
-  var remote = new RemotePlayer(data.playerID, playerGroup, data.x, data.y)
+  var remote = new RemotePlayer(data.playerID, playerGroup, data.x, data.y, data.name, data.color)
   glob.otherPlayers.push(remote)
 }
 
@@ -329,6 +337,22 @@ function updateUIText() {
     var centerTextStr = glob.gameInfo.onBreak ? "ROUND OVER. Next round in: " : "Time left: "
     centerTextStr += glob.gameInfo.ticksLeft.toString() + "\n"
     centerTextStr += "Collected: " + glob.gameInfo.specimensFound + "  Species: " + glob.gameInfo.typesFound + "/" + glob.gameInfo.typesAvailable
+    if (glob.gameInfo.onBreak) {
+      centerTextStr += "\n\nMost species: " + glob.gameInfo.mostPlayerTypes + " by:\n"
+      for (var i = 0; i < glob.gameInfo.playerIDsMostTypes.length; i++) {
+        var p = playerByID(glob.gameInfo.playerIDsMostTypes[i])
+        if (p) {
+          centerTextStr += p.name + "\n"
+        }
+      }
+      centerTextStr += "\n\nMost collected: " + glob.gameInfo.mostPlayerSpecimens + " by:\n"
+      for (var i = 0; i < glob.gameInfo.playerIDsMostSpecimens.length; i++) {
+        var p = playerByID(glob.gameInfo.playerIDsMostSpecimens[i])
+        if (p) {
+          centerTextStr += p.name + "\n"
+        }
+      }
+    }
     centerText.setText(centerTextStr)
   }
 }

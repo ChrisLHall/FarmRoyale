@@ -1,16 +1,19 @@
 /* global game */
 
-var RemotePlayer = function (playerID, group, startX, startY, playerInfo) {
+var RemotePlayer = function (playerID, group, startX, startY, name, color) {
   var x = startX
   var y = startY
 
   this.playerID = playerID
+  this.name = name
+  this.color = color
 
   this.gameObj = group.create(x, y, 'playerbot')
   this.gameObj.animations.add("stand", [0], 5, true)
   this.gameObj.animations.add("move", [0, 1], 5, true)
   this.gameObj.animations.play("stand")
   this.gameObj.anchor.setTo(0.5, 0.5)
+  this.gameObj.tint = parseInt(this.color, 16) + 0xcccccc
 
   this.gameObj.body.immovable = true
   this.gameObj.body.collideWorldBounds = true
@@ -18,7 +21,7 @@ var RemotePlayer = function (playerID, group, startX, startY, playerInfo) {
   this.targetPos = new Phaser.Point(x, y)
   this.lerpSpeed = 6
 
-  var style = { font: "20px Open Sans", fill: "#222233", align: "center" };
+  var style = { font: "20px Open Sans", fill: "#" + color, align: "center" };
   this.nameTag = game.add.text(-5000, -5000, "", style);
   this.nameTag.anchor.setTo(0.5, 0)
 }
@@ -45,7 +48,7 @@ RemotePlayer.prototype.update = function () {
 
   this.nameTag.x = this.gameObj.x
   this.nameTag.y = this.gameObj.y + 50
-  var nameTagText = "Mr Roboto\n"
+  var nameTagText = this.name + "\n"
   if (glob.gameInfo.typesFound > 0 && glob.gameInfo.playerIDsMostTypes.indexOf(this.playerID) >= 0) {
     nameTagText += "*Most Species: " + glob.gameInfo.mostPlayerTypes + "*\n"
   }

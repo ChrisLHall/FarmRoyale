@@ -49,7 +49,16 @@
   // 2 is grass, 3 is sand, 4 is swamp
   Collectible.COLLECTIBLES = {
       "critter_butterfly": { isCritter: true, habitat: 2, spawnRate: 5, moveSpeed: 1, },
-      "plant_radish": { isCritter: false, habitat: 2, spawnRate: 5, moveSpeed: 0, }
+      "critter_bug": { isCritter: true, habitat: 4, spawnRate: 5, moveSpeed: 1, },
+      "critter_slime": { isCritter: true, habitat: 4, spawnRate: 2, moveSpeed: 1, },
+      "critter_snake": { isCritter: true, habitat: 3, spawnRate: 5, moveSpeed: 2, },
+      "critter_squirrel": { isCritter: true, habitat: 2, spawnRate: 1, moveSpeed: 3, },
+
+      "plant_radish": { isCritter: false, habitat: 2, spawnRate: 5, moveSpeed: 0, },
+      "plant_acorn": { isCritter: false, habitat: 2, spawnRate: 5, moveSpeed: 0, },
+      "plant_cactus": { isCritter: false, habitat: 3, spawnRate: 5, moveSpeed: 0, },
+      "plant_mushroom": { isCritter: false, habitat: 4, spawnRate: 5, moveSpeed: 0, },
+      "plant_mushroom2": { isCritter: false, habitat: 4, spawnRate: 2, moveSpeed: 0, },
   }
 
   if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
